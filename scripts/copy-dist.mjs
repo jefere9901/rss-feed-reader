@@ -4,7 +4,7 @@ import { resolve } from "path";
 const base = resolve(import.meta.dirname || ".", "..");
 const dist = resolve(base, "dist");
 
-const extras = ["plugin.json", "README.md", "README_en.md"];
+const extras = ["plugin.json", "README.md", "README_en.md", "icon.png"];
 for (const f of extras) {
   try {
     copyFileSync(resolve(base, f), resolve(dist, f));

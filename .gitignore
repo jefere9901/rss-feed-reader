@@ -29,3 +29,4 @@ opml-*.json
 *.opml
 release/
 *.zip
+icon-render.html
