@@ -1,0 +1,29 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# screenshots & test artifacts
+screenshots/
+siyuan-screenshot*.png
+siyuan-after-reload*.png
+siyuan-error.png
+siyuan-errors.json
+*-report.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# env & config
+.env
+.env.local
+*.log
+trae-mcp-config.json
+dev-watch.ps1
+opml-*.txt
+opml-*.json
+*.opml

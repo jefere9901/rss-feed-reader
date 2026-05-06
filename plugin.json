@@ -1,0 +1,35 @@
+{
+  "name": "rss-feed-reader",
+  "author": "RSS Reader",
+  "url": "",
+  "version": "1.0.0",
+  "minAppVersion": "3.0.0",
+  "displayName": {
+    "default": "RSS Feed Reader",
+    "zh_CN": "RSS 订阅阅读器"
+  },
+  "description": {
+    "default": "RSS feed reader for SiYuan Note",
+    "zh_CN": "RSS 订阅阅读器 - 快捷便利的思源笔记插件"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh_CN": "README_zh_CN.md"
+  },
+  "funding": {
+    "custom": []
+  },
+  "backends": [
+    "all"
+  ],
+  "frontends": [
+    "all"
+  ],
+  "keywords": [
+    "rss",
+    "订阅",
+    "阅读器"
+  ],
+  "main": "index.js",
+  "icon": "iconRSS"
+}
