@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite build --watch",
     "dev:auto": "powershell -File dev-watch.ps1",
-    "build": "vite build && copy package.json dist\\ 2>nul & copy plugin.json dist\\ 2>nul",
+    "build": "vite build && node scripts/copy-dist.mjs",
+    "pack": "npm run build && node scripts/pack.mjs",
     "deploy": "node scripts/deploy.mjs",
     "build:deploy": "npm run build && npm run deploy",
     "test": "node siyuan-test.mjs",
