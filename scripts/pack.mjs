@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync } from "fs";
 import { resolve } from "path";
 
 const base = resolve(import.meta.dirname || ".", "..");
@@ -15,5 +15,12 @@ execSync(
   { stdio: "inherit" }
 );
 
+execSync(
+  `powershell -Command "Copy-Item -Path '${resolve(base, zipName)}' -Destination '${resolve(base, "package.zip")}' -Force"`,
+  { stdio: "inherit" }
+);
+
 console.log(`✅ ${zipName} 已生成`);
+console.log(`✅ package.zip 已生成 (集市用)`);
 console.log(`📤 上传到: https://github.com/jefere9901/rss-feed-reader/releases/new`);
+console.log(`   把 package.zip 作为附件上传到 Release`);

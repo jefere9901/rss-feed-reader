@@ -1,7 +1,7 @@
 {
   "name": "rss-feed-reader",
-  "author": "RSS Reader",
-  "url": "",
+  "author": "jefere9901",
+  "url": "https://github.com/jefere9901/rss-feed-reader",
   "version": "1.0.0",
   "minAppVersion": "3.0.0",
   "displayName": {
