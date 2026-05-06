@@ -41,7 +41,7 @@ export class DockWidget {
     header.className = "rss-header";
     header.innerHTML = `
       <div class="rss-title">
-        <span class="rss-title-icon">📡</span>
+        <svg class="rss-title-svg" viewBox="0 0 32 32"><use href="#iconRSS"/></svg>
         RSS Feed
       </div>
     `;

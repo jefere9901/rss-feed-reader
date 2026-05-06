@@ -65,12 +65,11 @@
   gap: 6px;
 }
 
-.rss-title-icon {
+.rss-title-svg {
   width: 20px;
   height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-shrink: 0;
+  color: #f97316;
 }
 
 .rss-search-btn {
