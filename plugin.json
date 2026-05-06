@@ -13,8 +13,8 @@
     "zh_CN": "RSS 订阅阅读器 - 快捷便利的思源笔记插件"
   },
   "readme": {
-    "default": "README.md",
-    "zh_CN": "README_zh_CN.md"
+    "default": "README_en.md",
+    "zh_CN": "README.md"
   },
   "funding": {
     "custom": []
