@@ -1,0 +1,6 @@
+柴静 https://www.youtube.com/@chaijing2023
+阮一峰 http://www.ruanyifeng.com/blog/atom.xml
+纽约时报 https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml
+笨方法写作 https://www.cnfeat.com/feed.xml
+
+opml位置  D:\demo\rss_siyuan\Reeder.opml  

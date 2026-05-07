@@ -12,7 +12,7 @@
 
 - **多格式支持** — RSS 2.0、Atom 以及 YouTube 频道 Feed（支持 `media:description` 和普通 description 解析）
 - **内置阅读器** — 在思源内部直接阅读完整文章，无需跳转浏览器
-- **一键下载** — 将任意文章一键保存为思源笔记
+- **一键下载** — 下载文章后自动跳转打开思源笔记，再次打开同一文章显示「📄 跳转查看」
 - **订阅管理** — 创建文件夹分类管理订阅源，支持移动分组；文件夹可折叠展开
 - **纯净名称** — 订阅名称自动清洗，不显示网址 URL；favicon 图标以图片渲染
 - **OPML 导入导出** — 从 Feedly、Inoreader、Reeder 等导入现有订阅，也支持导出备份
@@ -179,6 +179,7 @@ npm run pack
 | E2E 测试 | `scripts/test-reset.mjs` | 数据清除 + 确认对话框（7 项） |
 | E2E 测试 | `scripts/test-bypass-toggle.mjs` | 反限制开关 开启/关闭 + 状态持久化（13 项） |
 | E2E 测试 | `scripts/test-bypass-compare.mjs` | 开/关两模式 RSS 内容对比（NYT Arts） |
+| E2E 测试 | `scripts/test-full-download.mjs` | 下载→自动跳转→再次打开显示跳转 全流程（30+ 项） |
 | 逻辑测试 | `scripts/test-feed-name-display.mjs` | cleanFeedName 降级策略 + 代码安全性 |
 
 ## 🤝 贡献

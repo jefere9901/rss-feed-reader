@@ -39,6 +39,7 @@ export interface Article {
   published: string;
   author: string;
   read: boolean;
+  downloadedDocID?: string;
 }
 
 export interface AppSettings {

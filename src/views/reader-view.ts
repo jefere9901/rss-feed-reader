@@ -47,12 +47,17 @@ export class ReaderView {
     const panel = document.createElement("div");
     panel.className = "rss-reader-panel";
 
+    const isDownloaded = !!this.article.downloadedDocID;
+    const actionLabel = isDownloaded ? "📄 跳转查看" : "⬇ 下载";
+    const actionTitle = isDownloaded ? "在思源中打开" : "下载到思源";
+    const actionClass = isDownloaded ? "rss-reader-jump" : "rss-reader-download";
+
     panel.innerHTML = `
       <div class="rss-reader-toolbar">
         <button class="rss-reader-btn rss-reader-close" title="关闭">✕</button>
         <div class="rss-reader-toolbar-spacer"></div>
-        <button class="rss-reader-btn rss-reader-download" title="下载到思源">
-          ⬇ 下载
+        <button class="rss-reader-btn ${actionClass}" title="${actionTitle}">
+          ${actionLabel}
         </button>
         <a class="rss-reader-btn rss-reader-link" href="${this.article.link}" target="_blank" title="在浏览器打开">
           🔗 原文
@@ -73,8 +78,15 @@ export class ReaderView {
     const closeBtn = panel.querySelector(".rss-reader-close") as HTMLElement;
     closeBtn.addEventListener("click", () => this.close());
 
-    const downloadBtn = panel.querySelector(".rss-reader-download") as HTMLElement;
-    downloadBtn.addEventListener("click", () => this.handleDownload(downloadBtn));
+    const actionBtn = panel.querySelector(`.${actionClass}`) as HTMLElement;
+    if (isDownloaded) {
+      actionBtn.addEventListener("click", () => {
+        api.openDoc(this.article.downloadedDocID!);
+        this.close();
+      });
+    } else {
+      actionBtn.addEventListener("click", () => this.handleDownload(actionBtn));
+    }
 
     const linkBtn = panel.querySelector(".rss-reader-link") as HTMLElement;
     linkBtn.addEventListener("click", (e) => {
@@ -127,16 +139,21 @@ export class ReaderView {
         });
       }
 
+      this.data = store.setArticleDownloaded(this.data, this.article.id, docID);
+      this.article.downloadedDocID = docID;
+      this.onDataChange(this.data);
+
       btn.textContent = "✅ 已下载";
       api.pushMsg(`✅ 已保存到思源：${this.article.title}`);
+
+      setTimeout(() => {
+        api.openDoc(docID);
+        this.close();
+      }, 300);
     } catch (err: any) {
       btn.textContent = "❌ 失败";
+      btn.disabled = true;
       api.pushErrMsg(`下载失败：${err.message || "未知错误"}`);
-    } finally {
-      setTimeout(() => {
-        btn.textContent = "⬇ 下载";
-        btn.disabled = false;
-      }, 2000);
     }
   }
 

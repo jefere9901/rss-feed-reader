@@ -167,3 +167,7 @@ export async function forwardProxy(
   }
   return res.data.body;
 }
+
+export function openDoc(id: string): void {
+  window.open(`siyuan://blocks/${id}`);
+}

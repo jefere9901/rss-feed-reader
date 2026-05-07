@@ -1,3 +1,5 @@
+import { getBypassHeaders } from "./bypass";
+
 export interface ParsedFeed {
   title: string;
   description: string;
@@ -207,7 +209,6 @@ export async function fetchFeed(
   bypass = false
 ): Promise<ParsedFeed> {
   const { forwardProxy } = await import("./api");
-  const { getBypassHeaders } = await import("./bypass");
   const bypassHeaders = bypass ? getBypassHeaders(url) : {};
   const headers: { name: string; value: string }[] = [
     { name: "User-Agent", value: bypassHeaders["User-Agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 RSS Reader/1.0" },
@@ -230,7 +231,6 @@ export async function discoverFeed(
   }
 
   const { forwardProxy } = await import("./api");
-  const { getBypassHeaders } = await import("./bypass");
   const bypassHeaders = bypass ? getBypassHeaders(url) : {};
   const headers: { name: string; value: string }[] = [
     { name: "User-Agent", value: bypassHeaders["User-Agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },

@@ -267,6 +267,17 @@ export function markAllRead(
   return { ...data };
 }
 
+export function setArticleDownloaded(
+  data: PluginData,
+  articleID: string,
+  docID: string
+): PluginData {
+  const article = data.articles.find((a) => a.id === articleID);
+  if (article) article.downloadedDocID = docID;
+  persist(data);
+  return { ...data };
+}
+
 export function updateFeedDocID(
   data: PluginData,
   feedID: string,
