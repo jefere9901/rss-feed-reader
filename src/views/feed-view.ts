@@ -93,7 +93,7 @@ export class FeedView {
         if (label) label.textContent = `正在刷新 (${i + 1}/${feeds.length})`;
         if (sub) sub.textContent = feed.name;
 
-        const parsed = await fetchFeed(feed.url);
+        const parsed = await fetchFeed(feed.url, this.data.settings.bypassPaywall);
         const existing = store.getFeedArticles(this.data, feed.id);
         const existingLinks = new Set(existing.map((a) => a.link));
 

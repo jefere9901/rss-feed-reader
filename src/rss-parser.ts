@@ -203,23 +203,26 @@ export function parseFeedXML(
 }
 
 export async function fetchFeed(
-  url: string
+  url: string,
+  bypass = false
 ): Promise<ParsedFeed> {
   const { forwardProxy } = await import("./api");
-  const text = await forwardProxy(
-    url,
-    "GET",
-    [
-      { name: "User-Agent", value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 RSS Reader/1.0" },
-      { name: "Accept", value: "application/rss+xml, application/atom+xml, application/xml, text/xml" },
-    ],
-    "text/xml"
-  );
+  const { getBypassHeaders } = await import("./bypass");
+  const bypassHeaders = bypass ? getBypassHeaders(url) : {};
+  const headers: { name: string; value: string }[] = [
+    { name: "User-Agent", value: bypassHeaders["User-Agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 RSS Reader/1.0" },
+    { name: "Accept", value: "application/rss+xml, application/atom+xml, application/xml, text/xml" },
+  ];
+  if (bypassHeaders["Referer"]) {
+    headers.push({ name: "Referer", value: bypassHeaders["Referer"] });
+  }
+  const text = await forwardProxy(url, "GET", headers, "text/xml");
   return parseFeedXML(text, url);
 }
 
 export async function discoverFeed(
-  url: string
+  url: string,
+  bypass = false
 ): Promise<{ title: string; url: string }[]> {
   // YouTube channel URL → convert to RSS
   if (/youtube\.com\/(@|channel\/|feeds\/videos)/i.test(url)) {
@@ -227,14 +230,15 @@ export async function discoverFeed(
   }
 
   const { forwardProxy } = await import("./api");
-  const html = await forwardProxy(
-    url,
-    "GET",
-    [
-      { name: "User-Agent", value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-    ],
-    "text/html"
-  );
+  const { getBypassHeaders } = await import("./bypass");
+  const bypassHeaders = bypass ? getBypassHeaders(url) : {};
+  const headers: { name: string; value: string }[] = [
+    { name: "User-Agent", value: bypassHeaders["User-Agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+  ];
+  if (bypassHeaders["Referer"]) {
+    headers.push({ name: "Referer", value: bypassHeaders["Referer"] });
+  }
+  const html = await forwardProxy(url, "GET", headers, "text/html");
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");

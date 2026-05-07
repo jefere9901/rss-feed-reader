@@ -46,6 +46,7 @@ export interface AppSettings {
   targetNotebookName: string;
   newArticlePosition: "top" | "bottom";
   autoRefreshMinutes: number;
+  bypassPaywall: boolean;
 }
 
 export interface PluginData {

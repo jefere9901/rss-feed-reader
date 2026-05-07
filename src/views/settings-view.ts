@@ -312,7 +312,7 @@ export class SettingsView {
                 feedCount++;
 
                 try {
-                  const parsed = await fetchFeed(item.xmlUrl);
+                  const parsed = await fetchFeed(item.xmlUrl, this.data.settings.bypassPaywall);
                   if (parsed.articles.length > 0) {
                     const articles = parsed.articles.map((a) => ({
                       id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -445,14 +445,14 @@ export class SettingsView {
         let feedName = "";
 
         try {
-          const feeds = await discoverFeed(url);
+          const feeds = await discoverFeed(url, this.data.settings.bypassPaywall);
           if (feeds.length > 0) {
             feedUrl = feeds[0].url;
             feedName = feeds[0].title;
           }
         } catch {}
 
-        const parsed = await fetchFeed(feedUrl);
+        const parsed = await fetchFeed(feedUrl, this.data.settings.bypassPaywall);
         feedName = store.cleanFeedName(feedName, parsed.title, feedUrl);
 
         feedback.className = "rss-detect-result rss-detect-success";
@@ -576,6 +576,7 @@ export class SettingsView {
     card.appendChild(this.createNotebookSetting());
     card.appendChild(this.createPositionSetting());
     card.appendChild(this.createRefreshIntervalSetting());
+    card.appendChild(this.createBypassSetting());
     card.appendChild(this.createResetSetting());
 
     body.appendChild(card);
@@ -721,6 +722,32 @@ export class SettingsView {
     });
 
     row.appendChild(group);
+    return row;
+  }
+
+  private createBypassSetting(): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "rss-setting-row";
+
+    const labelDiv = document.createElement("div");
+    labelDiv.innerHTML = `
+      <div class="rss-setting-label">反限制模式</div>
+      <div class="rss-setting-desc">使用搜索引擎身份抓取，突破网站访问限制</div>
+    `;
+    row.appendChild(labelDiv);
+
+    const toggle = document.createElement("div");
+    toggle.className = `rss-toggle${this.data.settings.bypassPaywall ? " active" : ""}`;
+    toggle.title = this.data.settings.bypassPaywall ? "已启用：搜索引擎身份抓取" : "已关闭：普通模式";
+    toggle.addEventListener("click", () => {
+      this.data = store.saveSettings(this.data, {
+        bypassPaywall: !this.data.settings.bypassPaywall,
+      });
+      this.onDataChange(this.data);
+      this.render();
+    });
+    row.appendChild(toggle);
+
     return row;
   }
 

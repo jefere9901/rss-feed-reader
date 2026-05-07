@@ -10,15 +10,15 @@ if (!pluginDir) {
   process.exit(1);
 }
 
-const files = ["index.js", "plugin.json", "index.css"];
-for (const f of files) {
+import { readdirSync } from "fs";
+
+const entries = readdirSync(dist);
+for (const f of entries) {
   const src = resolve(dist, f);
   const dst = resolve(pluginDir, f);
-  if (existsSync(src)) {
+  if (existsSync(src) && !src.endsWith(".md") && f !== "icon.png") {
     copyFileSync(src, dst);
     console.log(`✅ ${f} → ${dst}`);
-  } else {
-    console.log(`⚠️ ${src} 不存在，跳过`);
   }
 }
 

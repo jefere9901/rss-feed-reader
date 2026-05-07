@@ -24,6 +24,7 @@
 - **文章排序** — 新文章可置顶（顶部）或追加（底部）
 - **YouTube 支持** — 自动解析 YouTube Atom Feed 中的 `media:group/media:description` 内容
 - **HTML 直出** — 非 CDATA 包裹的 description 内容正确渲染，避免二次转义
+- **反限制模式** — 一键启用搜索引擎身份（Googlebot）抓取，突破新闻网站访问限制（覆盖 350+ 域名）
 
 ## 📦 安装
 
@@ -94,6 +95,16 @@ https://www.youtube.com/feeds/videos.xml?channel_id=频道ID
 - 每个订阅源可通过下拉菜单移动到其他文件夹
 - 点击 **🔄 清除全部** 可一键重置所有数据
 
+### 反限制模式
+
+部分新闻网站对普通访问者实施付费墙或限制。**反限制模式**通过伪装为搜索引擎爬虫来突破这些限制：
+
+1. 在 **设置** 标签页中，展开 **通用设置**
+2. 找到 **反限制模式** 开关，点击开启
+3. 添加或刷新订阅时，会自动使用 Googlebot 身份抓取
+
+支持 **350+ 个新闻网站域名**，包括 The New York Times、Washington Post、Wall Street Journal、Bloomberg、Financial Times、The Economist、Forbes、Business Insider 等主流媒体。
+
 ## 📁 项目结构
 
 ```
@@ -104,6 +115,7 @@ rss-feed-reader/
 │   ├── store.ts              # 数据持久化与状态管理
 │   ├── types.ts              # TypeScript 类型定义
 │   ├── api.ts                # 思源 API 封装
+│   ├── bypass.ts             # 反限制规则引擎（350+ 域名 UA/Referer 映射）
 │   ├── styles/
 │   │   └── index.css         # 插件样式（明暗主题）
 │   └── views/
@@ -165,6 +177,8 @@ npm run pack
 | E2E 测试 | `scripts/test-settings-collapse.mjs` | 折叠/展开功能验证（12 项） |
 | E2E 测试 | `scripts/test-layout-refactor.mjs` | 布局顺序 + 按钮位置验证（10 项） |
 | E2E 测试 | `scripts/test-reset.mjs` | 数据清除 + 确认对话框（7 项） |
+| E2E 测试 | `scripts/test-bypass-toggle.mjs` | 反限制开关 开启/关闭 + 状态持久化（13 项） |
+| E2E 测试 | `scripts/test-bypass-compare.mjs` | 开/关两模式 RSS 内容对比（NYT Arts） |
 | 逻辑测试 | `scripts/test-feed-name-display.mjs` | cleanFeedName 降级策略 + 代码安全性 |
 
 ## 🤝 贡献

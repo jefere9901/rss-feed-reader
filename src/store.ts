@@ -40,6 +40,7 @@ function defaultSettings(): AppSettings {
     targetNotebookName: "RSS 订阅",
     newArticlePosition: "top",
     autoRefreshMinutes: 0,
+    bypassPaywall: false,
   };
 }
 
