@@ -218,7 +218,8 @@ export class SettingsView {
     urlSpan.style.textOverflow = "ellipsis";
     urlSpan.style.whiteSpace = "nowrap";
     urlSpan.style.maxWidth = "200px";
-    urlSpan.title = feed.url;
+    urlSpan.title = feed.url + "（双击修改）";
+    urlSpan.style.cursor = "pointer";
 
     const status = document.createElement("span");
     status.className = "rss-feed-manage-status";
@@ -230,33 +231,81 @@ export class SettingsView {
     status.title = hasError ? `错误：${feed.lastFetchError}` : "正常";
     status.style.cursor = "default";
 
+    const makeInlineEditor = (currentValue: string, onSave: (value: string) => void) => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = currentValue;
+      input.className = "rss-feed-manage-input";
+      input.style.cssText = "font-size:13px;padding:2px 6px;border:1px solid var(--rss-primary);border-radius:4px;background:var(--rss-bg);color:var(--rss-text);outline:none;width:180px;";
+
+      let save = () => {
+        const val = input.value.trim();
+        input.replaceWith(nameSpan);
+        if (val && val !== currentValue) onSave(val);
+      };
+
+      input.addEventListener("blur", save);
+      input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); save(); }
+        if (ev.key === "Escape") { input.value = currentValue; input.blur(); }
+      });
+
+      nameSpan.replaceWith(input);
+      input.focus();
+      input.select();
+    };
+
+    const makeUrlEditor = (currentValue: string, onSave: (value: string) => void) => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = currentValue;
+      input.className = "rss-feed-manage-input";
+      input.style.cssText = "font-size:10px;padding:2px 6px;border:1px solid var(--rss-primary);border-radius:4px;background:var(--rss-bg);color:var(--rss-text);outline:none;max-width:300px;flex:1;";
+
+      let save = () => {
+        const val = input.value.trim();
+        input.replaceWith(urlSpan);
+        if (val && val !== currentValue) {
+          try {
+            onSave(val);
+          } catch (err: any) {
+            api.pushErrMsg(err.message);
+          }
+        }
+      };
+
+      input.addEventListener("blur", save);
+      input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); save(); }
+        if (ev.key === "Escape") { input.value = currentValue; input.blur(); }
+      });
+
+      urlSpan.replaceWith(input);
+      input.focus();
+      input.select();
+    };
+
     nameSpan.addEventListener("click", (e) => {
       e.stopPropagation();
-      const oldName = feed.name;
       const currentFeed = this.data.feeds.find((f) => f.id === feed.id);
-      const newName = prompt("修改订阅名称：", currentFeed ? currentFeed.name : oldName);
-      if (newName && newName.trim() && newName.trim() !== oldName) {
-        this.data = store.renameFeed(this.data, feed.id, newName.trim());
+      if (!currentFeed) return;
+      makeInlineEditor(currentFeed.name, (newName) => {
+        this.data = store.renameFeed(this.data, feed.id, newName);
         this.onDataChange(this.data);
         this.render();
-      }
+      });
     });
 
-    nameSpan.addEventListener("dblclick", (e) => {
+    urlSpan.addEventListener("dblclick", (e) => {
       e.stopPropagation();
       const currentFeed = this.data.feeds.find((f) => f.id === feed.id);
-      const oldUrl = currentFeed ? currentFeed.url : feed.url;
-      const newUrl = prompt("修改订阅链接：", oldUrl);
-      if (newUrl && newUrl.trim() && newUrl.trim() !== oldUrl) {
-        try {
-          this.data = store.updateFeedUrl(this.data, feed.id, newUrl.trim());
-          this.onDataChange(this.data);
-          this.render();
-          api.pushMsg(`✅ 链接已更新：${newUrl.trim()}`);
-        } catch (err: any) {
-          alert(err.message);
-        }
-      }
+      if (!currentFeed) return;
+      makeUrlEditor(currentFeed.url, (newUrl) => {
+        this.data = store.updateFeedUrl(this.data, feed.id, newUrl);
+        this.onDataChange(this.data);
+        this.render();
+        api.pushMsg(`✅ 链接已更新：${newUrl}`);
+      });
     });
 
     const delBtn = document.createElement("button");
