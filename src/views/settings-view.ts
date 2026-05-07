@@ -13,6 +13,7 @@ export class SettingsView {
   private editingFolder: FeedFolder | null = null;
   private feedMgmtCollapsed = false;
   private generalCollapsed = false;
+  private collapsedFolders: Set<string> = new Set();
 
   constructor(
     container: HTMLElement,
@@ -37,6 +38,7 @@ export class SettingsView {
 
     this.container.innerHTML = "";
     this.renderFeedManagement();
+    this.renderActionsBar();
     this.renderGeneralSettings();
   }
 
@@ -70,18 +72,13 @@ export class SettingsView {
       card.appendChild(empty);
     } else {
       rootFolders.forEach((folder) => {
-        card.appendChild(this.createFolderManageItem(folder));
-        const folderFeeds = store.getFolderFeeds(this.data, folder.id);
-        folderFeeds.forEach((feed) => {
-          card.appendChild(this.createFeedManageItem(feed, folder));
-        });
+        card.appendChild(this.createFolderGroupItem(folder));
       });
       const ungroupedFeeds = store.getFolderFeeds(this.data, null);
       if (ungroupedFeeds.length > 0) {
         if (rootFolders.length > 0) {
           const divider = document.createElement("div");
-          divider.style.cssText =
-            "padding: 6px 12px; font-size: 11px; color: var(--rss-text-muted); border-bottom: 1px solid var(--rss-border); background: var(--rss-bg);";
+          divider.className = "rss-settings-subtitle";
           divider.textContent = "📂 未分类";
           card.appendChild(divider);
         }
@@ -92,44 +89,6 @@ export class SettingsView {
     }
 
     body.appendChild(card);
-
-    const actions = document.createElement("div");
-    actions.className = "rss-settings-actions";
-
-    const opmlBtn = document.createElement("button");
-    opmlBtn.className = "rss-add-btn";
-    opmlBtn.innerHTML = "📂 导入 OPML";
-    opmlBtn.addEventListener("click", () => this.handleOPMLImport());
-    actions.appendChild(opmlBtn);
-
-    const exportBtn = document.createElement("button");
-    exportBtn.className = "rss-add-btn";
-    exportBtn.innerHTML = "📤 导出 OPML";
-    exportBtn.addEventListener("click", () => this.handleOPMLExport());
-    actions.appendChild(exportBtn);
-
-    const folderBtn = document.createElement("button");
-    folderBtn.className = "rss-add-btn";
-    folderBtn.innerHTML = "📁 新建文件夹";
-    folderBtn.addEventListener("click", () => {
-      this.showFolderForm = !this.showFolderForm;
-      this.showAddForm = false;
-      this.editingFolder = null;
-      this.render();
-    });
-    actions.appendChild(folderBtn);
-
-    const addBtn = document.createElement("button");
-    addBtn.className = "rss-add-btn";
-    addBtn.innerHTML = "＋ 添加订阅";
-    addBtn.addEventListener("click", () => {
-      this.showAddForm = !this.showAddForm;
-      this.showFolderForm = false;
-      this.render();
-    });
-    actions.appendChild(addBtn);
-
-    body.appendChild(actions);
     section.appendChild(body);
 
     if (this.showFolderForm) {
@@ -143,27 +102,23 @@ export class SettingsView {
     this.container.appendChild(section);
   }
 
-  private createFolderManageItem(folder: FeedFolder): HTMLElement {
-    const item = document.createElement("div");
-    item.className = "rss-folder-manage-item";
+  private createFolderGroupItem(folder: FeedFolder): HTMLElement {
+    const isCollapsed = this.collapsedFolders.has(folder.id);
+    const folderFeeds = store.getFolderFeeds(this.data, folder.id);
+    const container = document.createElement("div");
 
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "rss-folder-manage-name";
-    nameSpan.textContent = `📁 ${folder.name}`;
-    nameSpan.title = "点击重命名";
-    nameSpan.style.cursor = "pointer";
-
-    nameSpan.addEventListener("click", () => {
-      const newName = prompt("重命名文件夹：", folder.name);
-      if (newName && newName.trim() && newName.trim() !== folder.name) {
-        this.data = store.renameFolder(this.data, folder.id, newName.trim());
-        this.onDataChange(this.data);
-        this.render();
-      }
-    });
+    // Header row — always visible, clickable to toggle
+    const header = document.createElement("div");
+    header.className = "rss-folder-manage-item rss-folder-group-header";
+    header.style.cursor = "pointer";
+    header.innerHTML = `
+      <span class="rss-folder-group-arrow">${isCollapsed ? "▶" : "▼"}</span>
+      <span class="rss-folder-manage-name">📁 ${folder.name}</span>
+      <span class="rss-folder-manage-count">${folderFeeds.length}</span>
+    `;
 
     const delBtn = document.createElement("button");
-    delBtn.className = "rss-folder-manage-delete";
+    delBtn.className = "rss-feed-manage-delete";
     delBtn.textContent = "✕";
     delBtn.title = "删除文件夹（订阅移至未分类）";
     delBtn.addEventListener("click", (e) => {
@@ -174,10 +129,40 @@ export class SettingsView {
         this.render();
       }
     });
+    header.appendChild(delBtn);
 
-    item.appendChild(nameSpan);
-    item.appendChild(delBtn);
-    return item;
+    // Rename on long-click / double-click
+    const nameSpan = header.querySelector(".rss-folder-manage-name") as HTMLElement;
+    nameSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      const newName = prompt("重命名文件夹：", folder.name);
+      if (newName && newName.trim() && newName.trim() !== folder.name) {
+        this.data = store.renameFolder(this.data, folder.id, newName.trim());
+        this.onDataChange(this.data);
+        this.render();
+      }
+    });
+
+    header.addEventListener("click", () => {
+      if (this.collapsedFolders.has(folder.id)) {
+        this.collapsedFolders.delete(folder.id);
+      } else {
+        this.collapsedFolders.add(folder.id);
+      }
+      this.render();
+    });
+
+    container.appendChild(header);
+
+    // Children body
+    const children = document.createElement("div");
+    children.className = `rss-folder-group-children${isCollapsed ? " collapsed" : ""}`;
+    folderFeeds.forEach((feed) => {
+      children.appendChild(this.createFeedManageItem(feed, folder));
+    });
+    container.appendChild(children);
+
+    return container;
   }
 
   private createFeedManageItem(feed: any, folder: FeedFolder | null): HTMLElement {
@@ -527,6 +512,46 @@ export class SettingsView {
     });
 
     return form;
+  }
+
+  private renderActionsBar(): void {
+    const actions = document.createElement("div");
+    actions.className = "rss-settings-actions";
+
+    const opmlBtn = document.createElement("button");
+    opmlBtn.className = "rss-add-btn";
+    opmlBtn.innerHTML = "📂 导入 OPML";
+    opmlBtn.addEventListener("click", () => this.handleOPMLImport());
+    actions.appendChild(opmlBtn);
+
+    const exportBtn = document.createElement("button");
+    exportBtn.className = "rss-add-btn";
+    exportBtn.innerHTML = "📤 导出 OPML";
+    exportBtn.addEventListener("click", () => this.handleOPMLExport());
+    actions.appendChild(exportBtn);
+
+    const folderBtn = document.createElement("button");
+    folderBtn.className = "rss-add-btn";
+    folderBtn.innerHTML = "📁 新建文件夹";
+    folderBtn.addEventListener("click", () => {
+      this.showFolderForm = !this.showFolderForm;
+      this.showAddForm = false;
+      this.editingFolder = null;
+      this.render();
+    });
+    actions.appendChild(folderBtn);
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "rss-add-btn";
+    addBtn.innerHTML = "＋ 添加订阅";
+    addBtn.addEventListener("click", () => {
+      this.showAddForm = !this.showAddForm;
+      this.showFolderForm = false;
+      this.render();
+    });
+    actions.appendChild(addBtn);
+
+    this.container.appendChild(actions);
   }
 
   private renderGeneralSettings(): void {

@@ -437,6 +437,53 @@
   margin: 0;
 }
 
+.rss-settings-subtitle {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--rss-text-muted);
+  border-bottom: 1px solid var(--rss-border);
+  background: var(--rss-bg);
+}
+
+.rss-folder-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rss-folder-group-arrow {
+  font-size: 10px;
+  width: 12px;
+  flex-shrink: 0;
+  color: var(--rss-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.rss-folder-manage-count {
+  font-size: 10px;
+  color: var(--rss-text-muted);
+  background: var(--rss-bg);
+  padding: 1px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  margin-left: auto;
+  margin-right: 6px;
+}
+
+.rss-folder-group-children {
+  overflow: hidden;
+  max-height: 2000px;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  opacity: 1;
+}
+
+.rss-folder-group-children.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
 .rss-settings-card {
   background: var(--rss-card-bg);
   border: 1px solid var(--rss-border);
@@ -901,6 +948,7 @@
   display: flex;
   gap: 6px;
   margin-top: 6px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
 }
 
