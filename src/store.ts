@@ -11,7 +11,13 @@ export function cleanFeedName(...candidates: string[]): string {
         const u = new URL(c.trim());
         let name = u.hostname.replace(/^www\./, "");
         const parts = u.pathname.replace(/\/$/, "").split("/").filter(Boolean);
-        if (parts.length > 0) name += "/" + parts[parts.length - 1];
+        if (parts.length > 0) {
+          let last = parts[parts.length - 1];
+          last = last.replace(/\.(xml|rss|atom|json|php|html?)(\?.*)?$/i, "");
+          if (last) {
+            name += "/" + last;
+          }
+        }
         if (name.length > 50) name = name.slice(0, 50) + "...";
         return name;
       } catch {}

@@ -103,7 +103,7 @@ export class FeedView {
               const docID = await api.createDocWithMd(
                 this.data.settings.targetNotebook,
                 `/${feed.name}/`,
-                `# ${feed.name}\n\n${feed.url}\n`
+                `# ${feed.name}\n`
               );
               this.data = store.updateFeedDocID(this.data, feed.id, docID);
             }
