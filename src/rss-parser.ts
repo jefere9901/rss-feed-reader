@@ -372,3 +372,61 @@ function parseOutlines(parent: Element): OPMLOutline[] {
   });
   return outlines;
 }
+
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+export function generateOPML(data: { folders: { id: string; name: string; parentID: string | null }[]; feeds: { folderID: string | null; name: string; url: string }[] }): string {
+  const feedsByFolder = new Map<string | null, { name: string; url: string }[]>();
+  for (const feed of data.feeds) {
+    const key = feed.folderID;
+    if (!feedsByFolder.has(key)) feedsByFolder.set(key, []);
+    feedsByFolder.get(key)!.push({ name: feed.name, url: feed.url });
+  }
+
+  // Build folder tree: folderId → { name, children folderIds }
+  const folderMap = new Map<string, { name: string; children: string[] }>();
+  const rootFolders: string[] = [];
+  for (const f of data.folders) {
+    folderMap.set(f.id, { name: f.name, children: [] });
+    if (!f.parentID) {
+      rootFolders.push(f.id);
+    } else {
+      const parent = folderMap.get(f.parentID);
+      if (parent) parent.children.push(f.id);
+    }
+  }
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<opml version="2.0">\n`;
+  xml += `  <head>\n    <title>RSS 订阅导出</title>\n    <dateCreated>${new Date().toISOString()}</dateCreated>\n  </head>\n`;
+  xml += `  <body>\n`;
+
+  // Export root folders (with their feeds)
+  for (const fid of rootFolders) {
+    const folder = folderMap.get(fid)!;
+    const feeds = feedsByFolder.get(fid) || [];
+    if (feeds.length === 0 && folder.children.length === 0) continue;
+
+    xml += `    <outline text="${escapeXml(folder.name)}" title="${escapeXml(folder.name)}">\n`;
+    for (const feed of feeds) {
+      xml += `      <outline text="${escapeXml(feed.name)}" title="${escapeXml(feed.name)}" type="rss" xmlUrl="${escapeXml(feed.url)}"/>\n`;
+    }
+    xml += `    </outline>\n`;
+  }
+
+  // Export ungrouped feeds
+  const ungroupedFeeds = feedsByFolder.get(null) || [];
+  for (const feed of ungroupedFeeds) {
+    xml += `    <outline text="${escapeXml(feed.name)}" title="${escapeXml(feed.name)}" type="rss" xmlUrl="${escapeXml(feed.url)}"/>\n`;
+  }
+
+  xml += `  </body>\n</opml>\n`;
+  return xml;
+}

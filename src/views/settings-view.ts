@@ -1,7 +1,7 @@
 import type { PluginData, Notebook, FeedFolder } from "../types";
 import * as store from "../store";
 import * as api from "../api";
-import { fetchFeed, discoverFeed, parseOPML } from "../rss-parser";
+import { fetchFeed, discoverFeed, parseOPML, generateOPML } from "../rss-parser";
 
 export class SettingsView {
   private container: HTMLElement;
@@ -92,6 +92,12 @@ export class SettingsView {
     opmlBtn.innerHTML = "📂 导入 OPML";
     opmlBtn.addEventListener("click", () => this.handleOPMLImport());
     actions.appendChild(opmlBtn);
+
+    const exportBtn = document.createElement("button");
+    exportBtn.className = "rss-add-btn";
+    exportBtn.innerHTML = "📤 导出 OPML";
+    exportBtn.addEventListener("click", () => this.handleOPMLExport());
+    actions.appendChild(exportBtn);
 
     const folderBtn = document.createElement("button");
     folderBtn.className = "rss-add-btn";
@@ -364,6 +370,31 @@ export class SettingsView {
     setTimeout(() => {
       if (fileInput.parentNode) fileInput.parentNode.removeChild(fileInput);
     }, 1000);
+  }
+
+  private handleOPMLExport(): void {
+    const feeds = this.data.feeds;
+    if (feeds.length === 0) {
+      api.pushErrMsg("暂无订阅源可导出");
+      return;
+    }
+
+    const opml = generateOPML({
+      folders: this.data.folders,
+      feeds: feeds.map((f) => ({ folderID: f.folderID, name: f.name, url: f.url })),
+    });
+
+    const blob = new Blob([opml], { type: "text/xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rss-subscriptions.opml";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    api.pushMsg(`📤 已导出 ${feeds.length} 个订阅源到 OPML 文件`);
   }
 
   private createAddForm(): HTMLElement {
