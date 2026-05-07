@@ -208,7 +208,18 @@ export class FeedView {
 
     const icon = document.createElement("span");
     icon.className = "rss-feed-icon";
-    icon.textContent = displayIcon;
+
+    if (/^https?:\/\//i.test(displayIcon)) {
+      const img = document.createElement("img");
+      img.src = displayIcon;
+      img.style.width = "18px";
+      img.style.height = "18px";
+      img.style.borderRadius = "4px";
+      img.onerror = () => { icon.textContent = "📡"; };
+      icon.appendChild(img);
+    } else {
+      icon.textContent = displayIcon;
+    }
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "rss-feed-name";
