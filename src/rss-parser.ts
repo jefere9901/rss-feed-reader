@@ -43,6 +43,10 @@ function getHTMLContent(parent: Element, selector: string): string {
   const text = el.textContent?.trim() || "";
   if (!text) return "";
 
+  if (/<(\w+)[^>]*>/i.test(text)) {
+    return text;
+  }
+
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML || text;
