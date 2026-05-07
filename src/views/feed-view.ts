@@ -4,12 +4,15 @@ import * as api from "../api";
 import { fetchFeed, articleToSummary } from "../rss-parser";
 import { ReaderView } from "./reader-view";
 
+const ARTICLES_PER_PAGE = 30;
+
 export class FeedView {
   private container: HTMLElement;
   private data: PluginData;
   private onDataChange: (data: PluginData) => void;
   private expandedFeed: string | null = null;
   private expandedFolders: Set<string> = new Set();
+  private feedArticlePages: Map<string, number> = new Map();
 
   constructor(
     container: HTMLElement,
@@ -77,9 +80,19 @@ export class FeedView {
     if (bar.classList.contains("loading")) return;
     bar.classList.add("loading");
 
+    const label = bar.querySelector(".rss-refresh-label") as HTMLElement;
+    const sub = bar.querySelector(".rss-refresh-sub") as HTMLElement;
+    const count = bar.querySelector(".rss-refresh-count") as HTMLElement;
+
     let total = 0;
-    for (const feed of this.data.feeds) {
+    const feeds = this.data.feeds;
+    for (let i = 0; i < feeds.length; i++) {
+      const feed = feeds[i];
       try {
+        // Update progress
+        if (label) label.textContent = `正在刷新 (${i + 1}/${feeds.length})`;
+        if (sub) sub.textContent = feed.name;
+
         const parsed = await fetchFeed(feed.url);
         const existing = store.getFeedArticles(this.data, feed.id);
         const existingLinks = new Set(existing.map((a) => a.link));
@@ -120,10 +133,20 @@ export class FeedView {
         this.data = store.addArticles(this.data, feed.id, newArts);
         total += newArts.length;
       } catch {}
+
+      // Yield to event loop to keep UI responsive
+      await new Promise((r) => setTimeout(r, 0));
     }
 
     bar.classList.remove("loading");
+    if (label) label.textContent = "全部刷新";
+    if (sub) sub.textContent = `${feeds.length} 个订阅源`;
+
     if (total > 0) {
+      if (count) {
+        const unread = store.getUnreadCount(this.data);
+        count.textContent = `${unread} 篇未读`;
+      }
       api.pushMsg(`✅ 更新完成，新增 ${total} 篇文章`);
     } else {
       api.pushMsg("✅ 已是最新，没有新文章");
@@ -191,7 +214,8 @@ export class FeedView {
   private createFeedGroup(feed: Feed): HTMLElement {
     const group = document.createElement("div");
     group.className = "rss-feed-group";
-    if (this.expandedFeed === feed.id) {
+    const isExpanded = this.expandedFeed === feed.id;
+    if (isExpanded) {
       group.classList.add("expanded");
     }
 
@@ -237,14 +261,67 @@ export class FeedView {
     }
 
     header.addEventListener("click", () => {
-      group.classList.toggle("expanded");
-      this.expandedFeed = group.classList.contains("expanded") ? feed.id : null;
+      const wasExpanded = group.classList.contains("expanded");
+      if (wasExpanded) {
+        group.classList.remove("expanded");
+        this.expandedFeed = null;
+        // Clear article DOM to free memory
+        const list = group.querySelector(".rss-article-list") as HTMLElement;
+        if (list) list.innerHTML = "";
+        this.feedArticlePages.delete(feed.id);
+      } else {
+        // Close any other expanded feed
+        if (this.expandedFeed) {
+          const oldGroup = this.container.querySelector(".rss-feed-group.expanded");
+          if (oldGroup) {
+            oldGroup.classList.remove("expanded");
+            const oldList = oldGroup.querySelector(".rss-article-list") as HTMLElement;
+            if (oldList) oldList.innerHTML = "";
+          }
+        }
+        group.classList.add("expanded");
+        this.expandedFeed = feed.id;
+        // Virtual scroll render
+        this.renderArticlePage(group, feed, 0);
+      }
     });
 
     group.appendChild(header);
 
     const list = document.createElement("div");
     list.className = "rss-article-list";
+    if (isExpanded) {
+      this.renderArticlePage(group, feed, 0);
+    }
+
+    group.appendChild(list);
+    return group;
+  }
+
+  private renderArticlePage(group: HTMLElement, feed: Feed, page: number): void {
+    const articles = store.getFeedArticles(this.data, feed.id);
+    const list = group.querySelector(".rss-article-list") as HTMLElement;
+    if (!list) return;
+
+    const start = page * ARTICLES_PER_PAGE;
+    const end = start + ARTICLES_PER_PAGE;
+    const pageArticles = articles.slice(start, end);
+    const hasMore = end < articles.length;
+
+    // Clear previous render
+    list.innerHTML = "";
+
+    // Scrollable wrapper when paginated
+    const needsScroll = hasMore || page > 0 || articles.length > ARTICLES_PER_PAGE;
+    if (needsScroll) {
+      list.classList.add("has-scroll");
+      list.style.maxHeight = "420px";
+      list.style.overflowY = "auto";
+    } else {
+      list.classList.remove("has-scroll");
+      list.style.maxHeight = "none";
+      list.style.overflowY = "visible";
+    }
 
     if (articles.length === 0) {
       const empty = document.createElement("div");
@@ -254,14 +331,55 @@ export class FeedView {
       empty.style.fontSize = "12px";
       empty.textContent = "暂无文章";
       list.appendChild(empty);
-    } else {
-      articles.slice(0, 20).forEach((article) => {
-        list.appendChild(this.createArticleItem(feed, article));
-      });
+      return;
     }
 
-    group.appendChild(list);
-    return group;
+    // Show count info
+    if (page > 0 || hasMore) {
+      const info = document.createElement("div");
+      info.className = "rss-article-info";
+      info.textContent = `第 ${start + 1}-${Math.min(end, articles.length)} 篇，共 ${articles.length} 篇`;
+      list.appendChild(info);
+    }
+
+    // Render visible articles
+    pageArticles.forEach((article) => {
+      list.appendChild(this.createArticleItem(feed, article));
+    });
+
+    // "Load more" / pagination controls
+    if (hasMore || page > 0) {
+      const controls = document.createElement("div");
+      controls.className = "rss-pagination";
+
+      if (page > 0) {
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "rss-pagination-btn";
+        prevBtn.textContent = "◀ 上一页";
+        prevBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.feedArticlePages.set(feed.id, page - 1);
+          this.renderArticlePage(group, feed, page - 1);
+          (list.parentElement as HTMLElement)?.scrollIntoView({ behavior: "smooth" });
+        });
+        controls.appendChild(prevBtn);
+      }
+
+      if (hasMore) {
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "rss-pagination-btn";
+        nextBtn.textContent = "下一页 ▶";
+        nextBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.feedArticlePages.set(feed.id, page + 1);
+          this.renderArticlePage(group, feed, page + 1);
+          list.scrollTop = 0;
+        });
+        controls.appendChild(nextBtn);
+      }
+
+      list.appendChild(controls);
+    }
   }
 
   private createArticleItem(feed: Feed, article: Article): HTMLElement {
