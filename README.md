@@ -68,11 +68,13 @@
 
 ### 添加 YouTube 频道
 
-YouTube 频道使用特殊的 URL 格式：
+支持以下 4 种 YouTube 链接格式，插件会自动转换为 RSS Feed：
 
-```
-https://www.youtube.com/feeds/videos.xml?channel_id=频道ID
-```
+| 格式 | 示例 |
+|------|------|
+| **RSS 直链** | `https://www.youtube.com/feeds/videos.xml?channel_id=UC...` |
+| **频道页 URL** | `https://www.youtube.com/channel/UC...` |
+| **@用户名** | `https://www.youtube.com/@chaijing2023` |
 
 插件会自动从 `media:description` 命名空间中解析视频描述内容。
 
