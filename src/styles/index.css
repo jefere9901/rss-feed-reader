@@ -401,6 +401,42 @@
   margin-bottom: 8px;
 }
 
+.rss-settings-collapse-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 8px;
+  border-radius: var(--rss-radius-sm);
+  transition: var(--rss-transition);
+}
+
+.rss-settings-collapse-header:hover {
+  background: var(--rss-primary-bg);
+  color: var(--rss-primary);
+}
+
+.rss-settings-arrow {
+  font-size: 10px;
+  width: 12px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.rss-settings-collapse-body {
+  overflow: hidden;
+  max-height: 3000px;
+  transition: max-height 0.35s ease, opacity 0.25s ease;
+  opacity: 1;
+}
+
+.rss-settings-collapse-body.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+}
+
 .rss-settings-card {
   background: var(--rss-card-bg);
   border: 1px solid var(--rss-border);

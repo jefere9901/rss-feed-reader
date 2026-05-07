@@ -11,6 +11,8 @@ export class SettingsView {
   private showAddForm = false;
   private showFolderForm = false;
   private editingFolder: FeedFolder | null = null;
+  private feedMgmtCollapsed = false;
+  private generalCollapsed = false;
 
   constructor(
     container: HTMLElement,
@@ -43,9 +45,16 @@ export class SettingsView {
     section.className = "rss-settings-section";
 
     const title = document.createElement("div");
-    title.className = "rss-settings-section-title";
-    title.textContent = "订阅管理";
+    title.className = "rss-settings-section-title rss-settings-collapse-header";
+    title.innerHTML = `<span class="rss-settings-arrow">${this.feedMgmtCollapsed ? "▶" : "▼"}</span> ${this.data.feeds.length} 个订阅`;
+    title.addEventListener("click", () => {
+      this.feedMgmtCollapsed = !this.feedMgmtCollapsed;
+      this.render();
+    });
     section.appendChild(title);
+
+    const body = document.createElement("div");
+    body.className = `rss-settings-collapse-body${this.feedMgmtCollapsed ? " collapsed" : ""}`;
 
     const card = document.createElement("div");
     card.className = "rss-settings-card";
@@ -82,7 +91,7 @@ export class SettingsView {
       }
     }
 
-    section.appendChild(card);
+    body.appendChild(card);
 
     const actions = document.createElement("div");
     actions.className = "rss-settings-actions";
@@ -120,7 +129,8 @@ export class SettingsView {
     });
     actions.appendChild(addBtn);
 
-    section.appendChild(actions);
+    body.appendChild(actions);
+    section.appendChild(body);
 
     if (this.showFolderForm) {
       section.appendChild(this.createFolderForm());
@@ -524,9 +534,16 @@ export class SettingsView {
     section.className = "rss-settings-section";
 
     const title = document.createElement("div");
-    title.className = "rss-settings-section-title";
-    title.textContent = "通用设置";
+    title.className = "rss-settings-section-title rss-settings-collapse-header";
+    title.innerHTML = `<span class="rss-settings-arrow">${this.generalCollapsed ? "▶" : "▼"}</span> 通用设置`;
+    title.addEventListener("click", () => {
+      this.generalCollapsed = !this.generalCollapsed;
+      this.render();
+    });
     section.appendChild(title);
+
+    const body = document.createElement("div");
+    body.className = `rss-settings-collapse-body${this.generalCollapsed ? " collapsed" : ""}`;
 
     const card = document.createElement("div");
     card.className = "rss-settings-card";
@@ -535,7 +552,8 @@ export class SettingsView {
     card.appendChild(this.createPositionSetting());
     card.appendChild(this.createRefreshIntervalSetting());
 
-    section.appendChild(card);
+    body.appendChild(card);
+    section.appendChild(body);
     this.container.appendChild(section);
   }
 
