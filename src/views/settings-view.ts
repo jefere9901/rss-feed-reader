@@ -313,6 +313,11 @@ export class SettingsView {
 
                 try {
                   const parsed = await fetchFeed(item.xmlUrl, this.data.settings.bypassPaywall);
+
+                  if (parsed.icon) {
+                    this.data = store.setFeedIcon(this.data, feedID, parsed.icon);
+                  }
+
                   if (parsed.articles.length > 0) {
                     const articles = parsed.articles.map((a) => ({
                       id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

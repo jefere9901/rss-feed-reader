@@ -292,6 +292,19 @@ export function updateFeedDocID(
   return { ...data };
 }
 
+export function setFeedIcon(
+  data: PluginData,
+  feedID: string,
+  icon: string
+): PluginData {
+  const feed = data.feeds.find((f) => f.id === feedID);
+  if (feed && icon && /^https?:\/\//i.test(icon)) {
+    feed.icon = icon;
+    persist(data);
+  }
+  return { ...data };
+}
+
 export function getFeedArticles(
   data: PluginData,
   feedID: string
