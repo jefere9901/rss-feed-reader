@@ -28,26 +28,20 @@
 
 ## 📦 安装
 
-### 从 GitHub 安装（推荐）
+### 方式一：思源集市安装（推荐）
+
+1. 在思源笔记中，进入 **设置 → 集市 → 插件**
+2. 搜索 **RSS Feed** 或 **RSS 订阅阅读器**
+3. 点击 **安装**，启用插件即可
+
+### 方式二：GitHub 手动安装
 
 1. 从 [Releases](https://github.com/jefere9901/rss-feed-reader/releases) 页面下载最新的 `package.zip`
-2. 在思源笔记中，进入 **设置 → 集市 → 插件**
-3. 点击 **导入插件**，选择下载的 zip 文件
-4. 启用插件
-
-### 手动安装
-
-1. 从源码构建：
-   ```bash
-   git clone https://github.com/jefere9901/rss-feed-reader.git
-   cd rss-feed-reader
-   npm install
-   npm run build
-   ```
-2. 将 `dist/` 目录内容复制到思源插件目录：
+2. 解压后将文件夹内容放入思源插件目录：
    ```
    {workspace}/data/plugins/rss-feed-reader/
    ```
+3. 重启思源，进入 **设置 → 插件**，启用 **RSS Feed** 插件
 
 ### 环境变量（开发用）
 
