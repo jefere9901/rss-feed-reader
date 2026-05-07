@@ -707,6 +707,25 @@
   color: white;
 }
 
+.rss-reset-btn {
+  padding: 6px 16px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--rss-radius-sm);
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--rss-transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rss-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+}
+
 .rss-bottom-bar {
   padding: 8px 16px;
   border-top: 1px solid var(--rss-border);

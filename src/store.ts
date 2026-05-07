@@ -349,3 +349,12 @@ export function getChildFolders(data: PluginData, parentID: string): FeedFolder[
 export function getFolderFeeds(data: PluginData, folderID: string | null): Feed[] {
   return data.feeds.filter((f) => f.folderID === folderID);
 }
+
+export function resetAll(data: PluginData): PluginData {
+  data.folders = [];
+  data.feeds = [];
+  data.articles = [];
+  data.settings = defaultSettings();
+  persist(data);
+  return { ...data };
+}

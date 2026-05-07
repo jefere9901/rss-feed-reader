@@ -576,6 +576,7 @@ export class SettingsView {
     card.appendChild(this.createNotebookSetting());
     card.appendChild(this.createPositionSetting());
     card.appendChild(this.createRefreshIntervalSetting());
+    card.appendChild(this.createResetSetting());
 
     body.appendChild(card);
     section.appendChild(body);
@@ -720,6 +721,35 @@ export class SettingsView {
     });
 
     row.appendChild(group);
+    return row;
+  }
+
+  private createResetSetting(): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "rss-setting-row";
+    row.style.borderTop = "1px solid var(--rss-border)";
+    row.style.paddingTop = "10px";
+
+    const labelDiv = document.createElement("div");
+    labelDiv.innerHTML = `
+      <div class="rss-setting-label" style="color:#ef4444;">重置数据</div>
+      <div class="rss-setting-desc">清除所有订阅源、文章和文件夹</div>
+    `;
+    row.appendChild(labelDiv);
+
+    const btn = document.createElement("button");
+    btn.className = "rss-reset-btn";
+    btn.textContent = "🔄 清除全部";
+    btn.addEventListener("click", () => {
+      if (confirm("确定要清除所有订阅数据吗？此操作不可撤销！")) {
+        this.data = store.resetAll(this.data);
+        this.onDataChange(this.data);
+        this.render();
+        api.pushMsg("🔄 已清除所有订阅数据");
+      }
+    });
+
+    row.appendChild(btn);
     return row;
   }
 }
