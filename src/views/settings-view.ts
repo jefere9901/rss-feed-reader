@@ -732,13 +732,13 @@ export class SettingsView {
     const labelDiv = document.createElement("div");
     labelDiv.innerHTML = `
       <div class="rss-setting-label">反限制模式</div>
-      <div class="rss-setting-desc">使用搜索引擎身份抓取，突破网站访问限制</div>
+      <div class="rss-setting-desc">使用搜索引擎身份抓取，自动提取文章全文</div>
     `;
     row.appendChild(labelDiv);
 
     const toggle = document.createElement("div");
     toggle.className = `rss-toggle${this.data.settings.bypassPaywall ? " active" : ""}`;
-    toggle.title = this.data.settings.bypassPaywall ? "已启用：搜索引擎身份抓取" : "已关闭：普通模式";
+    toggle.title = this.data.settings.bypassPaywall ? "已启用：全文提取 + 搜索引擎身份" : "已关闭：普通模式";
     toggle.addEventListener("click", () => {
       this.data = store.saveSettings(this.data, {
         bypassPaywall: !this.data.settings.bypassPaywall,

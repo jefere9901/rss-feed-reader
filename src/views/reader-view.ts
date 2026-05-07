@@ -2,12 +2,15 @@ import type { Article } from "../types";
 import * as api from "../api";
 import * as store from "../store";
 import { htmlToMarkdown } from "../rss-parser";
+import { extractContent, isContentSubstantial } from "../readability";
+import { getBypassHeaders } from "../bypass";
 
 export class ReaderView {
   private overlay: HTMLElement;
   private article: Article;
   private data: any;
   private onDataChange: (data: any) => void;
+  private fullTextLoaded = false;
 
   constructor(
     article: Article,
@@ -24,6 +27,7 @@ export class ReaderView {
     document.body.appendChild(this.overlay);
     requestAnimationFrame(() => {
       this.overlay.classList.add("visible");
+      this.maybeFetchFullText();
     });
   }
 
@@ -52,6 +56,8 @@ export class ReaderView {
     const actionTitle = isDownloaded ? "在思源中打开" : "下载到思源";
     const actionClass = isDownloaded ? "rss-reader-jump" : "rss-reader-download";
 
+    const currentContent = this.article.content || this.article.summary || "（无内容）";
+
     panel.innerHTML = `
       <div class="rss-reader-toolbar">
         <button class="rss-reader-btn rss-reader-close" title="关闭">✕</button>
@@ -70,7 +76,7 @@ export class ReaderView {
           <span>🕐 ${this.formatDate(this.article.published)}</span>
         </div>
         <div class="rss-reader-content" id="rss-reader-content">
-          ${this.sanitizeContent(this.article.content || this.article.summary || "（无内容）")}
+          ${this.sanitizeContent(currentContent)}
         </div>
       </div>
     `;
@@ -103,6 +109,54 @@ export class ReaderView {
 
     overlay.appendChild(panel);
     return overlay;
+  }
+
+  private async maybeFetchFullText(): Promise<void> {
+    const bypass = this.data.settings.bypassPaywall;
+    if (!bypass) return;
+    if (this.fullTextLoaded) return;
+    if (!this.article.link) return;
+
+    const existing = this.article.content || this.article.summary || "";
+    if (isContentSubstantial(existing, this.article.summary || "")) return;
+
+    const contentEl = document.getElementById("rss-reader-content");
+    if (!contentEl) return;
+
+    contentEl.insertAdjacentHTML("beforebegin",
+      '<div class="rss-fulltext-loading" id="rss-fulltext-loading">⏳ 正在提取全文...</div>'
+    );
+
+    try {
+      const bypassHeaders = getBypassHeaders(this.article.link);
+      const headers: { name: string; value: string }[] = [
+        { name: "User-Agent", value: bypassHeaders["User-Agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      ];
+      if (bypassHeaders["Referer"]) {
+        headers.push({ name: "Referer", value: bypassHeaders["Referer"] });
+      }
+
+      const html = await api.forwardProxy(this.article.link, "GET", headers, "text/html");
+      const extracted = extractContent(html, this.article.title);
+
+      if (extracted.content) {
+        this.article.content = extracted.content;
+        contentEl.innerHTML = this.sanitizeContent(extracted.content);
+        this.fullTextLoaded = true;
+        api.pushMsg(`✅ 已提取全文：${this.article.title}`);
+      }
+    } catch {
+      const loading = document.getElementById("rss-fulltext-loading");
+      if (loading) loading.textContent = "⚠️ 全文提取失败，显示摘要";
+      setTimeout(() => {
+        const l = document.getElementById("rss-fulltext-loading");
+        if (l) l.remove();
+      }, 2000);
+      return;
+    }
+
+    const loading = document.getElementById("rss-fulltext-loading");
+    if (loading) loading.remove();
   }
 
   private async handleDownload(btn: HTMLElement): Promise<void> {

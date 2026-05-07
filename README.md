@@ -24,7 +24,7 @@
 - **文章排序** — 新文章可置顶（顶部）或追加（底部）
 - **YouTube 支持** — 自动解析 YouTube Atom Feed 中的 `media:group/media:description` 内容
 - **HTML 直出** — 非 CDATA 包裹的 description 内容正确渲染，避免二次转义
-- **反限制模式** — 一键启用搜索引擎身份（Googlebot）抓取，突破新闻网站访问限制（覆盖 350+ 域名）
+- **反限制模式** — 一键启用搜索引擎身份抓取 + 自动提取文章全文（覆盖 350+ 域名）
 
 ## 📦 安装
 
@@ -93,11 +93,12 @@
 
 ### 反限制模式
 
-部分新闻网站对普通访问者实施付费墙或限制。**反限制模式**通过伪装为搜索引擎爬虫来突破这些限制：
+部分新闻网站对普通访问者实施付费墙或限制，许多 RSS Feed 也只提供摘要而非全文。开启后：
 
 1. 在 **设置** 标签页中，展开 **通用设置**
 2. 找到 **反限制模式** 开关，点击开启
-3. 添加或刷新订阅时，会自动使用 Googlebot 身份抓取
+3. 添加/刷新订阅时会自动使用 Googlebot 身份抓取
+4. **打开文章时自动从原文链接提取全文**（适用于 description-only 的 feed）
 
 支持 **350+ 个新闻网站域名**，包括 The New York Times、Washington Post、Wall Street Journal、Bloomberg、Financial Times、The Economist、Forbes、Business Insider 等主流媒体。
 
