@@ -5,16 +5,17 @@ A modern, elegant RSS feed reader plugin for [SiYuan Note](https://github.com/si
 Read your favorite blogs, news sites, and YouTube channels directly inside SiYuan Note — with full article content, dark mode support, OPML import, and one-click saving to your notebook.
 
 <p align="center">
-  <img src="image/README/1778036571548.png" alt="RSS Feed Reader Screenshot" width="720">
+  <img src="rss-feed-screen.png" alt="RSS Feed Reader Screenshot" width="720">
 </p>
 
 ## ✨ Features
 
 - **Multi-format Support** — RSS 2.0, Atom, and YouTube channel feeds (with `media:description` support)
-- **Read Inside SiYuan** — A built-in reader panel renders full article content without leaving the app
+- **Built-in Reader** — Read full articles inside SiYuan without opening a browser
 - **One-click Save** — Save any article as a SiYuan note with one click
-- **Feed Organization** — Create folders to manage your subscriptions, drag to reorganize
-- **OPML Import** — Import your existing subscriptions from other RSS readers
+- **Feed Organization** — Create folders to categorize your subscriptions, move feeds between folders
+- **Clean Display** — Subscription names are auto-cleaned (no raw URLs); favicon icons render as images
+- **OPML Import** — Import existing subscriptions from Feedly, Inoreader, Reeder, etc.
 - **Dark Mode** — Full dark theme support, matching SiYuan's UI
 - **Unread Badges** — Track unread counts per feed and per folder
 - **Auto-refresh** — Configurable auto-refresh interval
@@ -25,7 +26,7 @@ Read your favorite blogs, news sites, and YouTube channels directly inside SiYua
 
 ### From GitHub (Recommended)
 
-1. Download the latest `package.zip` from the [Releases](https://github.com/your-username/rss-feed-reader/releases) page
+1. Download the latest `package.zip` from the [Releases](https://github.com/jefere9901/rss-feed-reader/releases) page
 2. In SiYuan Note, go to **Settings → Marketplace → Plugins**
 3. Click **Import Plugin** and select the downloaded zip
 4. Enable the plugin
@@ -34,7 +35,7 @@ Read your favorite blogs, news sites, and YouTube channels directly inside SiYua
 
 1. Build from source:
    ```bash
-   git clone https://github.com/your-username/rss-feed-reader.git
+   git clone https://github.com/jefere9901/rss-feed-reader.git
    cd rss-feed-reader
    npm install
    npm run build
@@ -54,7 +55,7 @@ Read your favorite blogs, news sites, and YouTube channels directly inside SiYua
 
 ## 🚀 Quick Start
 
-1. Click the **RSS Feed** icon in the left dock bar
+1. Click the <img src="icon.png" width="16" height="16" style="vertical-align:middle;"> **RSS Feed** icon in the left dock bar
 2. Switch to the **Settings** tab (⚙️)
 3. Click **＋ Add Subscription**
 4. Enter a feed URL (e.g., `https://sspai.com/feed`) and click **Detect & Add**
@@ -95,9 +96,16 @@ rss-feed-reader/
 │       ├── reader-view.ts    # Article reader panel
 │       └── settings-view.ts  # Settings & feed management
 ├── scripts/
-│   ├── test-media-description.mjs  # Unit tests for media:description
-│   ├── test-youtube-real.mjs       # YouTube API integration test
-│   └── test-youtube-playwright.mjs # Playwright E2E test
+│   ├── deploy.mjs            # Auto-deploy script
+│   ├── pack.mjs              # Release packaging script
+│   ├── render-icon.mjs       # Logo render script
+│   ├── test-media-description.mjs    # media:description unit tests
+│   ├── test-youtube-real.mjs         # YouTube API integration test
+│   ├── test-youtube-playwright.mjs   # YouTube Playwright E2E test
+│   ├── test-feed-name-display.mjs    # Clean name / no URL test
+│   └── test-import-ruanyifeng.mjs    # Import Ruanyifeng RSS E2E test
+├── icon.svg                  # Plugin logo (SVG source)
+├── icon.png                  # Plugin logo (160×160)
 ├── package.json
 ├── plugin.json
 ├── vite.config.ts
@@ -116,19 +124,21 @@ npm run build
 # Watch mode (auto-rebuild on changes)
 npm run dev
 
-# Run Playwright E2E tests
-node scripts/test-youtube-playwright.mjs
+# Package for release
+npm run pack
 ```
 
 ## 🧪 Testing
 
 The project includes multiple levels of testing:
 
-| Test | File | Description |
-|------|------|-------------|
+| Test Type | File | Description |
+|-----------|------|-------------|
 | Unit | `scripts/test-media-description.mjs` | 6 scenarios — YouTube media:description parsing |
-| Integration | `scripts/test-youtube-real.mjs` | Real YouTube API call with the exact feed URL |
-| E2E | `scripts/test-youtube-playwright.mjs` | Browser-based test: add feed → verify content in reader |
+| Integration | `scripts/test-youtube-real.mjs` | Real YouTube API call verification |
+| E2E | `scripts/test-youtube-playwright.mjs` | Browser automation: add YouTube → verify content |
+| E2E | `scripts/test-import-ruanyifeng.mjs` | Import Ruanyifeng RSS → verify clean name |
+| Logic | `scripts/test-feed-name-display.mjs` | cleanFeedName fallback strategy + code safety |
 
 ## 🤝 Contributing
 
@@ -136,7 +146,7 @@ Pull requests are welcome! Please ensure:
 
 1. Code follows the existing style and conventions
 2. TypeScript compiles without errors (`npm run build`)
-3. Tests pass for any new functionality
+3. New functionality passes relevant Playwright tests
 
 ## 📄 License
 
