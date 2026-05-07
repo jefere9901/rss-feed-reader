@@ -2,7 +2,7 @@
 
 A modern, elegant RSS feed reader plugin for [SiYuan Note](https://github.com/siyuan-note/siyuan).
 
-Read your favorite blogs, news sites, and YouTube channels directly inside SiYuan Note — with full article content, dark mode support, OPML import, and one-click saving to your notebook.
+Read your favorite blogs, news sites, and YouTube channels directly inside SiYuan Note — with full article content, dark mode support, OPML import/export, and one-click saving to your notebook.
 
 <p align="center">
   <img src="rss-feed-screen.png" alt="RSS Feed Reader Screenshot" width="720">
@@ -10,17 +10,20 @@ Read your favorite blogs, news sites, and YouTube channels directly inside SiYua
 
 ## ✨ Features
 
-- **Multi-format Support** — RSS 2.0, Atom, and YouTube channel feeds (with `media:description` support)
+- **Multi-format Support** — RSS 2.0, Atom, and YouTube channel feeds (with `media:description` and plain description parsing)
 - **Built-in Reader** — Read full articles inside SiYuan without opening a browser
 - **One-click Save** — Save any article as a SiYuan note with one click
-- **Feed Organization** — Create folders to categorize your subscriptions, move feeds between folders
+- **Feed Organization** — Create folders to categorize subscriptions; folders are individually collapsible
 - **Clean Display** — Subscription names are auto-cleaned (no raw URLs); favicon icons render as images
-- **OPML Import** — Import existing subscriptions from Feedly, Inoreader, Reeder, etc.
+- **OPML Import & Export** — Import from Feedly, Inoreader, Reeder, etc., and export for backup
+- **Collapsible Sections** — Settings sections can be collapsed for a cleaner view; action buttons always visible
+- **Data Reset** — One-click "Clear All" button in general settings to wipe all subscription data
 - **Dark Mode** — Full dark theme support, matching SiYuan's UI
 - **Unread Badges** — Track unread counts per feed and per folder
 - **Auto-refresh** — Configurable auto-refresh interval
 - **Article Positioning** — New articles can be prepended (top) or appended (bottom)
 - **YouTube Support** — Parses `media:group/media:description` from YouTube Atom feeds
+- **Non-CDATA HTML** — Correctly renders HTML content from description tags without double-escaping
 
 ## 📦 Installation
 
@@ -78,6 +81,19 @@ The plugin automatically parses video descriptions from the `media:description` 
 2. Select your `.opml` file (exported from Feedly, Inoreader, Reeder, etc.)
 3. All feeds and folder structures will be imported automatically
 
+### Exporting to OPML
+
+1. In the **Settings** tab, click **📤 Export OPML**
+2. The browser will download `rss-subscriptions.opml` automatically
+3. You can import this file into other RSS readers
+
+### Managing Feeds
+
+- Click a folder header to **collapse/expand** its feeds
+- **Double-click** a folder name to rename it
+- Use the dropdown next to each feed to move it between folders
+- Click **🔄 Clear All** in general settings to reset all data
+
 ## 📁 Project Structure
 
 ```
@@ -96,14 +112,20 @@ rss-feed-reader/
 │       ├── reader-view.ts    # Article reader panel
 │       └── settings-view.ts  # Settings & feed management
 ├── scripts/
-│   ├── deploy.mjs            # Auto-deploy script
-│   ├── pack.mjs              # Release packaging script
-│   ├── render-icon.mjs       # Logo render script
-│   ├── test-media-description.mjs    # media:description unit tests
-│   ├── test-youtube-real.mjs         # YouTube API integration test
-│   ├── test-youtube-playwright.mjs   # YouTube Playwright E2E test
-│   ├── test-feed-name-display.mjs    # Clean name / no URL test
-│   └── test-import-ruanyifeng.mjs    # Import Ruanyifeng RSS E2E test
+│   ├── deploy.mjs                       # Auto-deploy script
+│   ├── pack.mjs                         # Release packaging script
+│   ├── render-icon.mjs                  # Logo render script
+│   ├── test-media-description.mjs       # media:description unit tests
+│   ├── test-youtube-real.mjs            # YouTube API integration test
+│   ├── test-youtube-playwright.mjs      # YouTube Playwright E2E test
+│   ├── test-feed-name-display.mjs       # Clean name / no URL test
+│   ├── test-import-ruanyifeng.mjs       # Import Ruanyifeng RSS E2E test
+│   ├── test-cnfeat.mjs                  # cnfeat.com RSS full test
+│   ├── test-cnfeat-deep.mjs             # cnfeat.com HTML escaping deep analysis
+│   ├── test-opml-export.mjs             # OPML export E2E test
+│   ├── test-settings-collapse.mjs       # Collapse/expand feature test
+│   ├── test-layout-refactor.mjs         # Layout refactor verification
+│   └── test-reset.mjs                   # Data reset feature test
 ├── icon.svg                  # Plugin logo (SVG source)
 ├── icon.png                  # Plugin logo (160×160)
 ├── package.json
@@ -136,8 +158,13 @@ The project includes multiple levels of testing:
 |-----------|------|-------------|
 | Unit | `scripts/test-media-description.mjs` | 6 scenarios — YouTube media:description parsing |
 | Integration | `scripts/test-youtube-real.mjs` | Real YouTube API call verification |
-| E2E | `scripts/test-youtube-playwright.mjs` | Browser automation: add YouTube → verify content |
+| E2E | `scripts/test-youtube-playwright.mjs` | Add YouTube → verify article content |
 | E2E | `scripts/test-import-ruanyifeng.mjs` | Import Ruanyifeng RSS → verify clean name |
+| E2E | `scripts/test-cnfeat.mjs` | cnfeat.com RSS → verify HTML rendering (16 items) |
+| E2E | `scripts/test-opml-export.mjs` | OPML export → file structure → round-trip (16 items) |
+| E2E | `scripts/test-settings-collapse.mjs` | Collapse/expand verification (12 items) |
+| E2E | `scripts/test-layout-refactor.mjs` | Layout order + button position (10 items) |
+| E2E | `scripts/test-reset.mjs` | Data clear + confirm dialog (7 items) |
 | Logic | `scripts/test-feed-name-display.mjs` | cleanFeedName fallback strategy + code safety |
 
 ## 🤝 Contributing

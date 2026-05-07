@@ -10,17 +10,20 @@
 
 ## ✨ 功能亮点
 
-- **多格式支持** — RSS 2.0、Atom 以及 YouTube 频道 Feed（支持 `media:description` 解析）
+- **多格式支持** — RSS 2.0、Atom 以及 YouTube 频道 Feed（支持 `media:description` 和普通 description 解析）
 - **内置阅读器** — 在思源内部直接阅读完整文章，无需跳转浏览器
 - **一键下载** — 将任意文章一键保存为思源笔记
-- **订阅管理** — 创建文件夹分类管理订阅源，支持移动分组
+- **订阅管理** — 创建文件夹分类管理订阅源，支持移动分组；文件夹可折叠展开
 - **纯净名称** — 订阅名称自动清洗，不显示网址 URL；favicon 图标以图片渲染
-- **OPML 导入** — 从 Feedly、Inoreader、Reeder 等 RSS 阅读器导入现有订阅
+- **OPML 导入导出** — 从 Feedly、Inoreader、Reeder 等导入现有订阅，也支持导出备份
+- **折叠面板** — 订阅管理、通用设置均支持一键折叠，操作按钮始终可见
+- **数据重置** — 通用设置中提供「清除全部」按钮，一键清空所有订阅数据
 - **暗色模式** — 完整暗色主题，与思源 UI 无缝融合
 - **未读标记** — 按订阅源和文件夹追踪未读数量
 - **自动刷新** — 可配置的自动刷新间隔
 - **文章排序** — 新文章可置顶（顶部）或追加（底部）
 - **YouTube 支持** — 自动解析 YouTube Atom Feed 中的 `media:group/media:description` 内容
+- **HTML 直出** — 非 CDATA 包裹的 description 内容正确渲染，避免二次转义
 
 ## 📦 安装
 
@@ -78,6 +81,19 @@ https://www.youtube.com/feeds/videos.xml?channel_id=频道ID
 2. 选择你的 `.opml` 文件（支持从 Feedly、Inoreader、Reeder 等导出）
 3. 所有订阅源和文件夹结构将自动导入
 
+### 导出为 OPML
+
+1. 在 **设置** 标签页中，点击 **📤 导出 OPML**
+2. 浏览器将自动下载 `rss-subscriptions.opml` 文件
+3. 可在其他 RSS 阅读器中导入该文件
+
+### 管理订阅
+
+- 点击文件夹标题可**折叠/展开**其下订阅源
+- **双击**文件夹名称可重命名
+- 每个订阅源可通过下拉菜单移动到其他文件夹
+- 点击 **🔄 清除全部** 可一键重置所有数据
+
 ## 📁 项目结构
 
 ```
@@ -96,14 +112,20 @@ rss-feed-reader/
 │       ├── reader-view.ts    # 文章阅读器面板
 │       └── settings-view.ts  # 设置与订阅管理
 ├── scripts/
-│   ├── deploy.mjs            # 自动部署脚本
-│   ├── pack.mjs              # 打包脚本（生成 package.zip）
-│   ├── render-icon.mjs       # Logo 渲染脚本
-│   ├── test-media-description.mjs    # media:description 单元测试
-│   ├── test-youtube-real.mjs         # YouTube API 集成测试
-│   ├── test-youtube-playwright.mjs   # YouTube Playwright E2E 测试
-│   ├── test-feed-name-display.mjs    # 订阅名称不含 URL 测试
-│   └── test-import-ruanyifeng.mjs    # 导入阮一峰 RSS 端到端测试
+│   ├── deploy.mjs                       # 自动部署脚本
+│   ├── pack.mjs                         # 打包脚本（生成 package.zip）
+│   ├── render-icon.mjs                  # Logo 渲染脚本
+│   ├── test-media-description.mjs       # media:description 单元测试
+│   ├── test-youtube-real.mjs            # YouTube API 集成测试
+│   ├── test-youtube-playwright.mjs      # YouTube Playwright E2E 测试
+│   ├── test-feed-name-display.mjs       # 订阅名称不含 URL 测试
+│   ├── test-import-ruanyifeng.mjs       # 导入阮一峰 RSS 端到端测试
+│   ├── test-cnfeat.mjs                  # cnfeat.com RSS 全面测试
+│   ├── test-cnfeat-deep.mjs             # cnfeat.com HTML 转义深度分析
+│   ├── test-opml-export.mjs             # OPML 导出 E2E 测试
+│   ├── test-settings-collapse.mjs       # 折叠/展开功能测试
+│   ├── test-layout-refactor.mjs         # 布局重构验证测试
+│   └── test-reset.mjs                   # 数据清除功能测试
 ├── icon.svg                  # 插件 Logo（SVG 源文件）
 ├── icon.png                  # 插件 Logo（160×160）
 ├── package.json
@@ -136,8 +158,13 @@ npm run pack
 |------|------|------|
 | 单元测试 | `scripts/test-media-description.mjs` | YouTube media:description 解析（6 场景） |
 | 集成测试 | `scripts/test-youtube-real.mjs` | 真实 YouTube API 调用验证 |
-| E2E 测试 | `scripts/test-youtube-playwright.mjs` | 浏览器自动化：添加 YouTube → 验证文章 |
+| E2E 测试 | `scripts/test-youtube-playwright.mjs` | 添加 YouTube → 验证文章内容 |
 | E2E 测试 | `scripts/test-import-ruanyifeng.mjs` | 导入阮一峰 RSS → 验证名称无 URL |
+| E2E 测试 | `scripts/test-cnfeat.mjs` | cnfeat.com RSS → 验证 HTML 渲染（16 项） |
+| E2E 测试 | `scripts/test-opml-export.mjs` | OPML 导出 → 文件结构 → 往返解析（16 项） |
+| E2E 测试 | `scripts/test-settings-collapse.mjs` | 折叠/展开功能验证（12 项） |
+| E2E 测试 | `scripts/test-layout-refactor.mjs` | 布局顺序 + 按钮位置验证（10 项） |
+| E2E 测试 | `scripts/test-reset.mjs` | 数据清除 + 确认对话框（7 项） |
 | 逻辑测试 | `scripts/test-feed-name-display.mjs` | cleanFeedName 降级策略 + 代码安全性 |
 
 ## 🤝 贡献
