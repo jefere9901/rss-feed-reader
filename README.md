@@ -8,11 +8,6 @@
   <img src="rss-feed-screen.png" alt="RSS 订阅阅读器截图" width="720">
 </p>
 
-<p align="center">
-  <img src="wx.jpg" alt="微信" width="200">
-  <img src="zfb.jpg" alt="支付宝" width="200">
-</p>
-
 ## ✨ 功能亮点
 
 - **多格式支持** — RSS 2.0、Atom 以及 YouTube 频道 Feed（支持 `media:description` 和普通 description 解析）
@@ -205,6 +200,11 @@ MIT
 
 - **QQ 群组**：1102449017
 - 欢迎交流反馈、提交 Issue 或 PR
+
+<p align="center">
+  <img src="wx.jpg" alt="微信" width="200">
+  <img src="zfb.jpg" alt="支付宝" width="200">
+</p>
 
 ---
 
