@@ -25,6 +25,7 @@ export interface Feed {
   url: string;
   icon: string;
   lastFetchTime: string;
+  lastFetchError: string;
   docID: string;
   articleIDs: string[];
 }

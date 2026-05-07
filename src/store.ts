@@ -305,6 +305,52 @@ export function setFeedIcon(
   return { ...data };
 }
 
+export function setFeedError(
+  data: PluginData,
+  feedID: string,
+  error: string
+): PluginData {
+  const feed = data.feeds.find((f) => f.id === feedID);
+  if (feed) {
+    feed.lastFetchError = error;
+    persist(data);
+  }
+  return { ...data };
+}
+
+export function renameFeed(
+  data: PluginData,
+  feedID: string,
+  name: string
+): PluginData {
+  const feed = data.feeds.find((f) => f.id === feedID);
+  if (feed && name.trim()) {
+    feed.name = cleanFeedName(name.trim());
+    persist(data);
+  }
+  return { ...data };
+}
+
+export function updateFeedUrl(
+  data: PluginData,
+  feedID: string,
+  url: string
+): PluginData {
+  const feed = data.feeds.find((f) => f.id === feedID);
+  if (feed && url.trim() && url !== feed.url) {
+    if (data.feeds.some((f) => f.id !== feedID && f.url === url)) {
+      throw new Error("该订阅源已存在");
+    }
+    feed.url = url.trim();
+    if (feed.docID) {
+      feed.docID = "";
+      feed.lastFetchTime = "";
+    }
+    persist(data);
+  }
+  return { ...data };
+}
+
 export function getFeedArticles(
   data: PluginData,
   feedID: string

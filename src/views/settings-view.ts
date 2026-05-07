@@ -205,10 +205,59 @@ export class SettingsView {
     const nameSpan = document.createElement("span");
     nameSpan.className = "rss-feed-manage-name";
     nameSpan.textContent = feed.name;
+    nameSpan.title = "单击修改名称 / 双击修改链接";
+    nameSpan.style.cursor = "pointer";
+
+    const urlSpan = document.createElement("span");
+    urlSpan.className = "rss-feed-manage-url";
+    urlSpan.textContent = feed.url;
+    urlSpan.style.fontSize = "10px";
+    urlSpan.style.color = "var(--rss-text-muted)";
+    urlSpan.style.marginLeft = "8px";
+    urlSpan.style.overflow = "hidden";
+    urlSpan.style.textOverflow = "ellipsis";
+    urlSpan.style.whiteSpace = "nowrap";
+    urlSpan.style.maxWidth = "200px";
+    urlSpan.title = feed.url;
 
     const status = document.createElement("span");
     status.className = "rss-feed-manage-status";
-    status.textContent = "●";
+    status.style.marginLeft = "auto";
+    status.style.marginRight = "8px";
+    status.style.flexShrink = "0";
+    const hasError = !!feed.lastFetchError;
+    status.textContent = hasError ? "🔴" : "🟢";
+    status.title = hasError ? `错误：${feed.lastFetchError}` : "正常";
+    status.style.cursor = "default";
+
+    nameSpan.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const oldName = feed.name;
+      const currentFeed = this.data.feeds.find((f) => f.id === feed.id);
+      const newName = prompt("修改订阅名称：", currentFeed ? currentFeed.name : oldName);
+      if (newName && newName.trim() && newName.trim() !== oldName) {
+        this.data = store.renameFeed(this.data, feed.id, newName.trim());
+        this.onDataChange(this.data);
+        this.render();
+      }
+    });
+
+    nameSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      const currentFeed = this.data.feeds.find((f) => f.id === feed.id);
+      const oldUrl = currentFeed ? currentFeed.url : feed.url;
+      const newUrl = prompt("修改订阅链接：", oldUrl);
+      if (newUrl && newUrl.trim() && newUrl.trim() !== oldUrl) {
+        try {
+          this.data = store.updateFeedUrl(this.data, feed.id, newUrl.trim());
+          this.onDataChange(this.data);
+          this.render();
+          api.pushMsg(`✅ 链接已更新：${newUrl.trim()}`);
+        } catch (err: any) {
+          alert(err.message);
+        }
+      }
+    });
 
     const delBtn = document.createElement("button");
     delBtn.className = "rss-feed-manage-delete";
@@ -222,6 +271,7 @@ export class SettingsView {
 
     item.appendChild(moveSelect);
     item.appendChild(nameSpan);
+    item.appendChild(urlSpan);
     item.appendChild(status);
     item.appendChild(delBtn);
     return item;
@@ -305,6 +355,7 @@ export class SettingsView {
                   url: item.xmlUrl,
                   icon: "📡",
                   lastFetchTime: "",
+                  lastFetchError: "",
                   docID: "",
                   articleIDs: [],
                 };
@@ -476,6 +527,7 @@ export class SettingsView {
           url: feedUrl,
           icon: parsed.icon || "📡",
           lastFetchTime: "",
+          lastFetchError: "",
           docID: "",
           articleIDs: [],
         };

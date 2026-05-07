@@ -94,6 +94,7 @@ export class FeedView {
         if (sub) sub.textContent = feed.name;
 
         const parsed = await fetchFeed(feed.url, this.data.settings.bypassPaywall);
+        this.data = store.setFeedError(this.data, feed.id, "");
         const existing = store.getFeedArticles(this.data, feed.id);
         const existingLinks = new Set(existing.map((a) => a.link));
 
@@ -132,7 +133,9 @@ export class FeedView {
 
         this.data = store.addArticles(this.data, feed.id, newArts);
         total += newArts.length;
-      } catch {}
+      } catch (err: any) {
+        this.data = store.setFeedError(this.data, feed.id, err.message || "获取失败");
+      }
 
       // Yield to event loop to keep UI responsive
       await new Promise((r) => setTimeout(r, 0));
