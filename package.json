@@ -1,6 +1,6 @@
 {
   "name": "rss-feed-reader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RSS 订阅阅读器 - 快捷便利的思源笔记插件",
   "scripts": {
     "dev": "vite build --watch",
