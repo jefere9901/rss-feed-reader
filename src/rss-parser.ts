@@ -221,6 +221,11 @@ export async function fetchFeed(
 export async function discoverFeed(
   url: string
 ): Promise<{ title: string; url: string }[]> {
+  // YouTube channel URL → convert to RSS
+  if (/youtube\.com\/(@|channel\/|feeds\/videos)/i.test(url)) {
+    return discoverYouTubeChannel(url);
+  }
+
   const { forwardProxy } = await import("./api");
   const html = await forwardProxy(
     url,
@@ -239,6 +244,80 @@ export async function discoverFeed(
     doc.querySelector("title")?.textContent?.trim() || url;
 
   return feeds.length > 0 ? feeds : [{ title, url }];
+}
+
+async function discoverYouTubeChannel(
+  url: string
+): Promise<{ title: string; url: string }[]> {
+  const { forwardProxy } = await import("./api");
+
+  // Case 0: URL is already the RSS feed endpoint
+  let channelId = new URL(url).searchParams.get("channel_id") || "";
+  if (channelId && /feeds\/videos/i.test(url)) {
+    return [{ title: url, url }];
+  }
+
+  // Case 2: URL is youtube.com/channel/UCxxx
+  if (!channelId) {
+    const chanMatch = url.match(/youtube\.com\/channel\/(UC[\w-]+)/);
+    if (chanMatch) channelId = chanMatch[1];
+  }
+
+  // Case 3: URL has @handle — fetch channel page to extract channelId
+  if (!channelId) {
+    try {
+      const html = await forwardProxy(
+        url,
+        "GET",
+        [
+          { name: "User-Agent", value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" },
+          { name: "Accept-Language", value: "zh-CN,zh;q=0.9" },
+        ],
+        "text/html"
+      );
+
+      // Extract channel name from og:title
+      const titleMatch = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/);
+      const title = titleMatch ? titleMatch[1].replace(/ - YouTube$/, "") : "";
+
+      // Try parsing ytInitialData
+      const ytIdx = html.indexOf("var ytInitialData");
+      if (ytIdx > -1) {
+        const eqIdx = html.indexOf("=", ytIdx);
+        const semiIdx = html.indexOf(";\n", eqIdx) > -1 ? html.indexOf(";\n", eqIdx) : html.indexOf(";", eqIdx);
+        if (eqIdx > -1 && semiIdx > -1) {
+          try {
+            const jsonStr = html.substring(eqIdx + 1, semiIdx).trim();
+            const data = JSON.parse(jsonStr);
+            const meta = data?.metadata?.channelMetadataRenderer;
+            if (meta?.externalId) {
+              channelId = meta.externalId;
+            }
+          } catch {}
+        }
+      }
+
+      // Fallback regex
+      if (!channelId) {
+        const m = html.match(/"externalId"\s*:\s*"(UC[\w-]+)"/);
+        channelId = m ? m[1] : "";
+      }
+
+      if (channelId) {
+        const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+        return [{ title: title || url, url: rssUrl }];
+      }
+    } catch {}
+  }
+
+  // Case 4: Already have channelId from case 1 or 2
+  if (channelId) {
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    return [{ title: url, url: rssUrl }];
+  }
+
+  // Fallback: try as-is
+  return [{ title: url, url }];
 }
 
 export function htmlToMarkdown(html: string): string {
