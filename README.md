@@ -203,7 +203,9 @@ MIT
 
 <p align="center">
   <img src="wx.jpg" alt="微信" width="200">
-  <img src="zfb.jpg" alt="支付宝" width="200">
+</p>
+<p align="center">
+  <img src="zfb.jpg" alt="支付宝" width="200" style="margin-top:30px;">
 </p>
 
 ---
