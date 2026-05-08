@@ -1,4 +1,5 @@
-import type { PluginData, Feed, FeedFolder, Article, AppSettings } from "./types";
+import type { PluginData, Feed, FeedFolder, Article, AppSettings, AISettings, AIUsageStats, AICacheEntry } from "./types";
+import { defaultAISettings } from "./types";
 
 export function cleanFeedName(...candidates: string[]): string {
   for (const c of candidates) {
@@ -50,6 +51,9 @@ function defaultData(): PluginData {
     feeds: [],
     articles: [],
     settings: defaultSettings(),
+    aiSettings: defaultAISettings(),
+    aiUsage: { month: "", calls: 0, tokens: 0, cost: 0 },
+    aiCache: [],
   };
 }
 
@@ -123,6 +127,9 @@ export function initStore(plugin: any): PluginData {
       feeds: Array.isArray(fileData.feeds) ? fileData.feeds : [],
       articles: Array.isArray(fileData.articles) ? fileData.articles : [],
       settings: { ...defaultSettings(), ...(fileData.settings || {}) },
+      aiSettings: { ...defaultAISettings(), ...(fileData.aiSettings || {}) },
+      aiUsage: { month: "", calls: 0, tokens: 0, cost: 0, ...(fileData.aiUsage || {}) },
+      aiCache: Array.isArray(fileData.aiCache) ? fileData.aiCache : [],
     };
     repairFeedNames(result);
     return result;
@@ -145,6 +152,9 @@ export function initStore(plugin: any): PluginData {
           feeds: Array.isArray(data.feeds) ? data.feeds : [],
           articles: Array.isArray(data.articles) ? data.articles : [],
           settings: { ...defaultSettings(), ...(data.settings || {}) },
+          aiSettings: { ...defaultAISettings(), ...(data.aiSettings || {}) },
+          aiUsage: { month: "", calls: 0, tokens: 0, cost: 0, ...(data.aiUsage || {}) },
+          aiCache: Array.isArray(data.aiCache) ? data.aiCache : [],
         };
         repairFeedNames(result);
         return result;
@@ -426,6 +436,67 @@ export function resetAll(data: PluginData): PluginData {
   data.feeds = [];
   data.articles = [];
   data.settings = defaultSettings();
+  data.aiCache = [];
+  persist(data);
+  return { ...data };
+}
+
+export function saveAISettings(data: PluginData, settings: Partial<AISettings>): PluginData {
+  data.aiSettings = { ...data.aiSettings, ...settings };
+  persist(data);
+  return { ...data };
+}
+
+export function updateAIUsage(data: PluginData, tokens: number): PluginData {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (data.aiUsage.month !== currentMonth) {
+    data.aiUsage = { month: currentMonth, calls: 0, tokens: 0, cost: 0 };
+  }
+  data.aiUsage.calls++;
+  data.aiUsage.tokens += tokens;
+  data.aiUsage.cost = (data.aiUsage.tokens / 1000000) * 2;
+  persist(data);
+  return { ...data };
+}
+
+export function getAICache(data: PluginData, articleID: string, type: "summary" | "translate" | "tags"): string | null {
+  const entry = data.aiCache.find(c => c.articleID === articleID && c.type === type);
+  return entry ? entry.result : null;
+}
+
+export function setAICache(data: PluginData, articleID: string, type: "summary" | "translate" | "tags", result: string): PluginData {
+  const idx = data.aiCache.findIndex(c => c.articleID === articleID && c.type === type);
+  const entry: AICacheEntry = { articleID, type, result, createdAt: new Date().toISOString() };
+  if (idx >= 0) {
+    data.aiCache[idx] = entry;
+  } else {
+    data.aiCache.push(entry);
+  }
+  if (data.aiCache.length > 500) {
+    data.aiCache = data.aiCache.slice(-400);
+  }
+  persist(data);
+  return { ...data };
+}
+
+export function setArticleAISummary(data: PluginData, articleID: string, summary: string): PluginData {
+  const article = data.articles.find(a => a.id === articleID);
+  if (article) article.aiSummary = summary;
+  persist(data);
+  return { ...data };
+}
+
+export function setArticleAITags(data: PluginData, articleID: string, tags: string[]): PluginData {
+  const article = data.articles.find(a => a.id === articleID);
+  if (article) article.aiTags = tags;
+  persist(data);
+  return { ...data };
+}
+
+export function setArticleAITranslate(data: PluginData, articleID: string, translated: string): PluginData {
+  const article = data.articles.find(a => a.id === articleID);
+  if (article) article.aiTranslated = translated;
   persist(data);
   return { ...data };
 }

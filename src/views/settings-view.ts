@@ -2,6 +2,7 @@ import type { PluginData, Notebook, FeedFolder } from "../types";
 import * as store from "../store";
 import * as api from "../api";
 import { fetchFeed, discoverFeed, parseOPML, generateOPML } from "../rss-parser";
+import { testConnection } from "../ai";
 
 export class SettingsView {
   private container: HTMLElement;
@@ -13,6 +14,7 @@ export class SettingsView {
   private editingFolder: FeedFolder | null = null;
   private feedMgmtCollapsed = false;
   private generalCollapsed = false;
+  private aiCollapsed = false;
   private collapsedFolders: Set<string> = new Set();
 
   constructor(
@@ -40,6 +42,7 @@ export class SettingsView {
     this.renderFeedManagement();
     this.renderActionsBar();
     this.renderGeneralSettings();
+    this.renderAISettings();
   }
 
   private renderFeedManagement(): void {
@@ -884,5 +887,205 @@ export class SettingsView {
 
     row.appendChild(btn);
     return row;
+  }
+
+  private renderAISettings(): void {
+    const section = document.createElement("div");
+    section.className = "rss-settings-section";
+
+    const title = document.createElement("div");
+    title.className = "rss-settings-section-title rss-settings-collapse-header";
+    title.innerHTML = `<span class="rss-settings-arrow">${this.aiCollapsed ? "▶" : "▼"}</span> 🤖 AI 设置`;
+    title.addEventListener("click", () => {
+      this.aiCollapsed = !this.aiCollapsed;
+      this.render();
+    });
+    section.appendChild(title);
+
+    const body = document.createElement("div");
+    body.className = `rss-settings-collapse-body${this.aiCollapsed ? " collapsed" : ""}`;
+
+    const card = document.createElement("div");
+    card.className = "rss-settings-card";
+
+    const ai = this.data.aiSettings;
+
+    const makeRow = (label: string, desc: string, right: HTMLElement) => {
+      const row = document.createElement("div");
+      row.className = "rss-setting-row";
+      const ld = document.createElement("div");
+      ld.innerHTML = `<div class="rss-setting-label">${label}</div><div class="rss-setting-desc">${desc}</div>`;
+      row.appendChild(ld);
+      row.appendChild(right);
+      return row;
+    };
+
+    const makeToggle = (key: keyof typeof ai, onLabel = "已启用", offLabel = "已关闭") => {
+      const t = document.createElement("div");
+      t.className = `rss-toggle${ai[key] ? " active" : ""}`;
+      t.title = ai[key] ? onLabel : offLabel;
+      t.addEventListener("click", () => {
+        this.data = store.saveAISettings(this.data, { [key]: !this.data.aiSettings[key] } as any);
+        this.onDataChange(this.data);
+        this.render();
+      });
+      return t;
+    };
+
+    const makeSelect = (key: keyof typeof ai, opts: { value: string; label: string }[]) => {
+      const s = document.createElement("select");
+      s.className = "rss-select";
+      opts.forEach(o => {
+        const opt = document.createElement("option");
+        opt.value = o.value;
+        opt.textContent = o.label;
+        if (ai[key] === o.value) opt.selected = true;
+        s.appendChild(opt);
+      });
+      s.addEventListener("change", () => {
+        this.data = store.saveAISettings(this.data, { [key]: s.value } as any);
+        this.onDataChange(this.data);
+        this.render();
+      });
+      return s;
+    };
+
+    // API config
+    const providerRow = document.createElement("div");
+    providerRow.className = "rss-setting-row";
+    const providerLabel = document.createElement("div");
+    providerLabel.innerHTML = `<div class="rss-setting-label">API 提供商</div><div class="rss-setting-desc">选择 AI 服务</div>`;
+    providerRow.appendChild(providerLabel);
+    const providerSelect = makeSelect("provider", [
+      { value: "deepseek", label: "DeepSeek（推荐）" },
+      { value: "openai", label: "OpenAI" },
+      { value: "custom", label: "自定义" },
+    ]);
+    providerRow.appendChild(providerSelect);
+    card.appendChild(providerRow);
+
+    const endpointRow = makeRow(
+      "API 地址",
+      "OpenAI 兼容接口地址",
+      (() => {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = ai.apiEndpoint;
+        inp.className = "rss-add-form-input";
+        inp.style.width = "260px";
+        inp.style.fontSize = "11px";
+        inp.addEventListener("change", () => {
+          this.data = store.saveAISettings(this.data, { apiEndpoint: inp.value });
+          this.onDataChange(this.data);
+        });
+        return inp;
+      })()
+    );
+    card.appendChild(endpointRow);
+
+    const modelRow = makeRow(
+      "模型",
+      "如 deepseek-chat、gpt-4o-mini",
+      (() => {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = ai.model;
+        inp.className = "rss-add-form-input";
+        inp.style.width = "160px";
+        inp.style.fontSize = "11px";
+        inp.addEventListener("change", () => {
+          this.data = store.saveAISettings(this.data, { model: inp.value });
+          this.onDataChange(this.data);
+        });
+        return inp;
+      })()
+    );
+    card.appendChild(modelRow);
+
+    const keyRow = makeRow(
+      "API Key",
+      "密钥存储在本地",
+      (() => {
+        const inp = document.createElement("input");
+        inp.type = "password";
+        inp.value = ai.apiKey;
+        inp.className = "rss-add-form-input";
+        inp.style.width = "200px";
+        inp.style.fontSize = "11px";
+        inp.addEventListener("change", () => {
+          this.data = store.saveAISettings(this.data, { apiKey: inp.value });
+          this.onDataChange(this.data);
+        });
+        return inp;
+      })()
+    );
+    card.appendChild(keyRow);
+
+    const testBtn = document.createElement("button");
+    testBtn.className = "rss-btn rss-btn-secondary";
+    testBtn.textContent = "🔍 测试连接";
+    testBtn.style.cssText = "margin: 0 12px 12px; font-size: 12px; padding: 4px 12px;";
+    testBtn.addEventListener("click", async () => {
+      testBtn.textContent = "⏳ 测试中...";
+      testBtn.disabled = true;
+      try {
+        const ok = await testConnection(this.data.aiSettings);
+        if (ok) { testBtn.textContent = "✅ 连接成功"; api.pushMsg("✅ AI 连接测试通过"); }
+        else { testBtn.textContent = "❌ 连接失败"; api.pushErrMsg("❌ AI 连接测试失败"); }
+      } catch (e: any) {
+        testBtn.textContent = "❌ 连接失败";
+        api.pushErrMsg(`❌ ${e.message}`);
+      }
+      setTimeout(() => { testBtn.textContent = "🔍 测试连接"; testBtn.disabled = false; }, 3000);
+    });
+    card.appendChild(testBtn);
+
+    const limitRow = makeRow(
+      "每月上限",
+      `本月已用 ${this.data.aiUsage.calls} 次 / ${this.data.aiUsage.tokens} tokens`,
+      (() => {
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.value = String(ai.monthlyCallLimit);
+        inp.className = "rss-add-form-input";
+        inp.style.width = "80px";
+        inp.style.fontSize = "11px";
+        inp.addEventListener("change", () => {
+          this.data = store.saveAISettings(this.data, { monthlyCallLimit: parseInt(inp.value) || 500 });
+          this.onDataChange(this.data);
+        });
+        return inp;
+      })()
+    );
+    card.appendChild(limitRow);
+
+    const subDiv = document.createElement("div");
+    subDiv.className = "rss-settings-subtitle";
+    subDiv.textContent = "⚙️ 功能开关";
+    subDiv.style.marginTop = "12px";
+    card.appendChild(subDiv);
+
+    const toggleItems: [string, string, keyof typeof ai][] = [
+      ["AI 摘要", "点击按钮生成文章摘要", "summaryEnabled"],
+      ["AI 翻译", "将外文文章翻译成中文", "translateEnabled"],
+      ["AI 智能标签", "抓取时自动为文章打标签", "taggingEnabled"],
+      ["AI 日报", "自动生成每日/每周阅读简报", "digestEnabled"],
+      ["AI 问答", "基于文章内容的对话问答", "qaEnabled"],
+      ["AI 兴趣过滤", "只显示感兴趣的文章", "filterEnabled"],
+    ];
+
+    toggleItems.forEach(([label, desc, key]) => {
+      const row = document.createElement("div");
+      row.className = "rss-setting-row";
+      const ld = document.createElement("div");
+      ld.innerHTML = `<div class="rss-setting-label">${label}</div><div class="rss-setting-desc">${desc}</div>`;
+      row.appendChild(ld);
+      row.appendChild(makeToggle(key, `已启用：${label}`, `已关闭：${label}`));
+      card.appendChild(row);
+    });
+
+    body.appendChild(card);
+    section.appendChild(body);
+    this.container.appendChild(section);
   }
 }

@@ -4,6 +4,7 @@ import * as store from "../store";
 import { htmlToMarkdown } from "../rss-parser";
 import { extractContent, isContentSubstantial } from "../readability";
 import { getBypassHeaders } from "../bypass";
+import { aiSummarize, aiTranslate, aiChat } from "../ai";
 
 export class ReaderView {
   private overlay: HTMLElement;
@@ -11,6 +12,8 @@ export class ReaderView {
   private data: any;
   private onDataChange: (data: any) => void;
   private fullTextLoaded = false;
+  private translated = false;
+  private chatHistory: { role: "user" | "assistant"; content: string }[] = [];
 
   constructor(
     article: Article,
@@ -58,10 +61,16 @@ export class ReaderView {
 
     const currentContent = this.article.content || this.article.summary || "（无内容）";
 
+    const aiBtns: string[] = [];
+    const ais = this.data.aiSettings;
+    if (ais.summaryEnabled) aiBtns.push(`<button class="rss-reader-btn rss-reader-ai-summary" title="AI 摘要">🤖 摘要</button>`);
+    if (ais.translateEnabled) aiBtns.push(`<button class="rss-reader-btn rss-reader-ai-translate" title="AI 翻译">🌐 翻译</button>`);
+
     panel.innerHTML = `
       <div class="rss-reader-toolbar">
         <button class="rss-reader-btn rss-reader-close" title="关闭">✕</button>
         <div class="rss-reader-toolbar-spacer"></div>
+        ${aiBtns.join("")}
         <button class="rss-reader-btn ${actionClass}" title="${actionTitle}">
           ${actionLabel}
         </button>
@@ -74,10 +83,20 @@ export class ReaderView {
         <div class="rss-reader-meta">
           ${this.article.author ? `<span>👤 ${this.article.author}</span>` : ""}
           <span>🕐 ${this.formatDate(this.article.published)}</span>
+          ${this.article.aiTags ? `<span class="rss-ai-tags">${this.article.aiTags.map((t: string) => "#" + t).join(" ")}</span>` : ""}
         </div>
         <div class="rss-reader-content" id="rss-reader-content">
           ${this.sanitizeContent(currentContent)}
         </div>
+        ${ais.qaEnabled ? `
+        <div class="rss-ai-qa" id="rss-ai-qa">
+          <div class="rss-ai-qa-messages" id="rss-ai-qa-messages"></div>
+          <div class="rss-ai-qa-input-row">
+            <input class="rss-ai-qa-input" id="rss-ai-qa-input" placeholder="💬 基于文章内容提问..." />
+            <button class="rss-btn rss-btn-primary" id="rss-ai-qa-send" style="font-size:11px;padding:4px 10px;">发送</button>
+          </div>
+        </div>
+        ` : ""}
       </div>
     `;
 
@@ -95,13 +114,25 @@ export class ReaderView {
     }
 
     const linkBtn = panel.querySelector(".rss-reader-link") as HTMLElement;
-    linkBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
+    linkBtn.addEventListener("click", (e) => { e.stopPropagation(); });
 
-    panel.addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
+    const summaryBtn = panel.querySelector(".rss-reader-ai-summary") as HTMLElement | null;
+    if (summaryBtn) summaryBtn.addEventListener("click", () => this.handleAISummary(summaryBtn));
+
+    const translateBtn = panel.querySelector(".rss-reader-ai-translate") as HTMLElement | null;
+    if (translateBtn) translateBtn.addEventListener("click", () => this.handleAITranslate(translateBtn));
+
+    const qaSend = panel.querySelector("#rss-ai-qa-send") as HTMLElement | null;
+    if (qaSend) qaSend.addEventListener("click", () => this.handleAIQA());
+
+    const qaInput = panel.querySelector("#rss-ai-qa-input") as HTMLInputElement | null;
+    if (qaInput) {
+      qaInput.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter") this.handleAIQA();
+      });
+    }
+
+    panel.addEventListener("click", (e) => { e.stopPropagation(); });
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") this.close();
@@ -109,6 +140,138 @@ export class ReaderView {
 
     overlay.appendChild(panel);
     return overlay;
+  }
+
+  private async handleAISummary(btn: HTMLElement): Promise<void> {
+    const content = this.article.content || this.article.summary || "";
+    const cached = store.getAICache(this.data, this.article.id, "summary");
+    if (cached) {
+      this.showSummaryCard(cached);
+      return;
+    }
+
+    btn.textContent = "⏳ 摘要...";
+    btn.disabled = true;
+
+    try {
+      const { result, tokens } = await aiSummarize(this.data.aiSettings, this.article.title, content);
+      this.data = store.updateAIUsage(this.data, tokens);
+      this.data = store.setAICache(this.data, this.article.id, "summary", result);
+      this.onDataChange(this.data);
+      this.showSummaryCard(result);
+      btn.textContent = "✅ 已摘要";
+    } catch (e: any) {
+      btn.textContent = "❌";
+      api.pushErrMsg(`摘要失败：${e.message}`);
+    } finally {
+      setTimeout(() => { btn.textContent = "🤖 摘要"; btn.disabled = false; }, 3000);
+    }
+  }
+
+  private showSummaryCard(result: string): void {
+    const existing = document.getElementById("rss-ai-summary-card");
+    if (existing) { existing.remove(); return; }
+
+    const contentEl = document.getElementById("rss-reader-content");
+    if (!contentEl) return;
+
+    const card = document.createElement("div");
+    card.id = "rss-ai-summary-card";
+    card.className = "rss-ai-summary-card";
+    card.innerHTML = `
+      <div class="rss-ai-summary-header">
+        <span>🤖 AI 摘要</span>
+        <button class="rss-ai-summary-close" id="rss-ai-summary-close">✕</button>
+      </div>
+      <div class="rss-ai-summary-body">${result.replace(/\n/g, "<br>")}</div>
+    `;
+    card.querySelector("#rss-ai-summary-close")?.addEventListener("click", () => card.remove());
+
+    const parent = contentEl.parentElement;
+    if (parent) parent.insertBefore(card, contentEl);
+  }
+
+  private async handleAITranslate(btn: HTMLElement): Promise<void> {
+    if (this.translated) {
+      const contentEl = document.getElementById("rss-reader-content");
+      if (contentEl && this.article.aiTranslated) {
+        contentEl.innerHTML = this.sanitizeContent(this.article.aiTranslated);
+        this.translated = false;
+        btn.textContent = "🌐 翻译";
+      }
+      return;
+    }
+
+    const cached = store.getAICache(this.data, this.article.id, "translate");
+    if (cached) {
+      this.showTranslation(cached);
+      btn.textContent = "📋 原文";
+      this.translated = true;
+      return;
+    }
+
+    btn.textContent = "⏳ 翻译...";
+    btn.disabled = true;
+
+    const content = this.article.content || this.article.summary || "";
+
+    try {
+      const { result, tokens } = await aiTranslate(this.data.aiSettings, content, this.data.aiSettings.translateTargetLang);
+      this.data = store.updateAIUsage(this.data, tokens);
+      this.data = store.setAICache(this.data, this.article.id, "translate", result);
+      this.data = store.setArticleAITranslate(this.data, this.article.id, result);
+      this.onDataChange(this.data);
+      this.showTranslation(result);
+      this.translated = true;
+      btn.textContent = "📋 原文";
+    } catch (e: any) {
+      btn.textContent = "❌";
+      api.pushErrMsg(`翻译失败：${e.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  private showTranslation(result: string): void {
+    const contentEl = document.getElementById("rss-reader-content");
+    if (contentEl) {
+      contentEl.innerHTML = this.sanitizeContent(result);
+    }
+  }
+
+  private async handleAIQA(): Promise<void> {
+    const input = document.getElementById("rss-ai-qa-input") as HTMLInputElement;
+    if (!input) return;
+    const question = input.value.trim();
+    if (!question) return;
+    input.value = "";
+
+    const msgs = document.getElementById("rss-ai-qa-messages");
+    if (!msgs) return;
+
+    const userBubble = document.createElement("div");
+    userBubble.className = "rss-ai-qa-bubble rss-ai-qa-user";
+    userBubble.textContent = question;
+    msgs.appendChild(userBubble);
+
+    const aiBubble = document.createElement("div");
+    aiBubble.className = "rss-ai-qa-bubble rss-ai-qa-ai";
+    aiBubble.textContent = "⏳ 思考中...";
+    msgs.appendChild(aiBubble);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    const content = this.article.content || this.article.summary || "";
+
+    try {
+      const { result, tokens } = await aiChat(this.data.aiSettings, content, question, this.chatHistory);
+      this.data = store.updateAIUsage(this.data, tokens);
+      this.onDataChange(this.data);
+      this.chatHistory.push({ role: "user", content: question }, { role: "assistant", content: result });
+      aiBubble.textContent = result;
+    } catch (e: any) {
+      aiBubble.textContent = `❌ ${e.message}`;
+    }
+    msgs.scrollTop = msgs.scrollHeight;
   }
 
   private async maybeFetchFullText(): Promise<void> {
@@ -171,22 +334,14 @@ export class ReaderView {
       let docID: string;
 
       if (notebook) {
-        docID = await api.createDocWithMd(
-          notebook,
-          `/${this.article.title.slice(0, 40)}`,
-          md
-        );
+        docID = await api.createDocWithMd(notebook, `/${this.article.title.slice(0, 40)}`, md);
       } else {
         const notebooks = await api.lsNotebooks();
         let nb = notebooks.find((n) => n.name === "RSS 订阅");
         if (!nb) {
           nb = await api.createNotebook("RSS 订阅");
         }
-        docID = await api.createDocWithMd(
-          nb.id,
-          `/${this.article.title.slice(0, 40)}`,
-          md
-        );
+        docID = await api.createDocWithMd(nb.id, `/${this.article.title.slice(0, 40)}`, md);
         this.data = store.saveSettings(this.data, {
           targetNotebook: nb.id,
           targetNotebookName: nb.name,
@@ -225,11 +380,14 @@ export class ReaderView {
       lines.push(`> 原文：[${this.article.link}](${this.article.link})`);
     }
     lines.push("");
-
+    if (this.article.aiSummary) {
+      lines.push(`## 🤖 AI 摘要`);
+      lines.push(this.article.aiSummary);
+      lines.push("");
+    }
     if (content) {
       lines.push(htmlToMarkdown(content));
     }
-
     return lines.join("\n");
   }
 
@@ -241,7 +399,6 @@ export class ReaderView {
       .replace(/on\w+\s*=\s*"[^"]*"/gi, "")
       .replace(/on\w+\s*=\s*'[^']*'/gi, "")
       .replace(/on\w+\s*=\s*\S+/gi, "");
-
     return cleaned;
   }
 
@@ -251,14 +408,9 @@ export class ReaderView {
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return dateStr;
       return date.toLocaleDateString("zh-CN", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+        year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
       });
-    } catch {
-      return dateStr;
-    }
+    } catch { return dateStr; }
   }
 }

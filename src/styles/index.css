@@ -1271,3 +1271,120 @@
 .rss-feed-manage-item .rss-feed-manage-name {
   font-weight: 500;
 }
+
+.rss-ai-summary-card {
+  margin: 0 24px 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--rss-primary-bg);
+  border: 1px solid var(--rss-primary);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--rss-text);
+}
+
+.rss-ai-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--rss-primary);
+}
+
+.rss-ai-summary-close {
+  background: none;
+  border: none;
+  color: var(--rss-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+}
+.rss-ai-summary-close:hover { color: var(--rss-text); }
+
+.rss-ai-summary-body {
+  white-space: pre-wrap;
+}
+
+.rss-ai-tags {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--rss-primary);
+}
+
+.rss-article-tags {
+  font-size: 10px;
+  color: var(--rss-primary);
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.rss-article-ai-badge {
+  display: inline-block;
+  font-size: 10px;
+  background: var(--rss-primary-bg);
+  color: var(--rss-primary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.rss-ai-qa {
+  margin: 12px 24px 0;
+  border-top: 1px solid var(--rss-border);
+  padding-top: 8px;
+}
+
+.rss-ai-qa-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.rss-ai-qa-bubble {
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 85%;
+}
+
+.rss-ai-qa-user {
+  background: var(--rss-primary-bg);
+  color: var(--rss-text);
+  margin-left: auto;
+  text-align: right;
+}
+
+.rss-ai-qa-ai {
+  background: var(--rss-bg-hover);
+  color: var(--rss-text);
+}
+
+.rss-ai-qa-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.rss-ai-qa-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--rss-border);
+  border-radius: 20px;
+  background: var(--rss-bg);
+  color: var(--rss-text);
+  font-size: 12px;
+  outline: none;
+}
+.rss-ai-qa-input:focus {
+  border-color: var(--rss-primary);
+}
+
+.rss-feed-manage-input {
+  font-family: inherit;
+}

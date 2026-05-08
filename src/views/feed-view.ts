@@ -3,6 +3,7 @@ import * as store from "../store";
 import * as api from "../api";
 import { fetchFeed, articleToSummary } from "../rss-parser";
 import { ReaderView } from "./reader-view";
+import { aiTagArticle } from "../ai";
 
 const ARTICLES_PER_PAGE = 30;
 
@@ -133,6 +134,20 @@ export class FeedView {
 
         this.data = store.addArticles(this.data, feed.id, newArts);
         total += newArts.length;
+
+        if (this.data.aiSettings.enabled && this.data.aiSettings.taggingEnabled && newArts.length > 0) {
+          const batchSize = Math.min(5, newArts.length);
+          for (let j = 0; j < batchSize && j < newArts.length; j++) {
+            const art = newArts[j];
+            try {
+              const { tags } = await aiTagArticle(this.data.aiSettings, art.title, art.summary || art.content);
+              if (tags.length > 0) {
+                this.data = store.setArticleAITags(this.data, art.id, tags);
+                this.data = store.setAICache(this.data, art.id, "tags", tags.join(","));
+              }
+            } catch {}
+          }
+        }
       } catch (err: any) {
         this.data = store.setFeedError(this.data, feed.id, err.message || "获取失败");
       }
@@ -398,6 +413,8 @@ export class FeedView {
         ${timeAgo ? `<span>${timeAgo}</span>` : ""}
         ${article.link ? `<span>${new URL(article.link).hostname}</span>` : ""}
       </div>
+      ${article.aiTags && article.aiTags.length > 0 ? `<div class="rss-article-tags">${article.aiTags.map(t => `#${t}`).join(" ")}</div>` : ""}
+      ${article.aiSummary ? `<div class="rss-article-ai-badge">🤖 已摘要</div>` : ""}
     `;
 
     item.addEventListener("click", () => {
