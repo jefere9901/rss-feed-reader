@@ -18,6 +18,20 @@
   --rss-transition: 0.2s ease;
 }
 
+[data-theme-mode="dark"] {
+  --rss-bg: rgba(30, 30, 40, 0.7);
+  --rss-bg-hover: rgba(40, 40, 55, 0.85);
+  --rss-card-bg: rgba(35, 35, 50, 0.7);
+  --rss-border: rgba(255, 255, 255, 0.06);
+  --rss-text: #e2e8f0;
+  --rss-text-secondary: #94a3b8;
+  --rss-text-muted: #64748b;
+  --rss-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --rss-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --rss-primary-bg: rgba(99, 102, 241, 0.12);
+}
+
+/* 兼容旧版思源 / 手动切换 */
 [data-theme="dark"] {
   --rss-bg: rgba(30, 30, 40, 0.7);
   --rss-bg-hover: rgba(40, 40, 55, 0.85);

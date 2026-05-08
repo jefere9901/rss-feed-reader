@@ -19,8 +19,30 @@ export class DockWidget {
     this.data = data;
     this.element = document.createElement("div");
     this.element.className = "rss-widget";
+    this.syncTheme();
     this.build();
     this.switchTab("feed");
+
+    this.observeThemeChange();
+  }
+
+  private syncTheme(): void {
+    const html = document.documentElement;
+    const isDark = html.getAttribute("data-theme-mode") === "dark"
+      || html.getAttribute("data-theme") === "dark";
+    if (isDark) {
+      this.element.setAttribute("data-theme-mode", "dark");
+    } else {
+      this.element.removeAttribute("data-theme-mode");
+    }
+  }
+
+  private observeThemeChange(): void {
+    const observer = new MutationObserver(() => this.syncTheme());
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme-mode", "data-theme"],
+    });
   }
 
   updateData(data: PluginData): void {
