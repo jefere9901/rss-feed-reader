@@ -146,20 +146,30 @@ export async function forwardProxy(
   url: string,
   method = "GET",
   headers: { name: string; value: string }[] = [],
-  contentType = "text/xml"
+  contentType = "text/xml",
+  payloadStr = ""
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    url,
+    method,
+    timeout: 15000,
+    contentType,
+    headers,
+    responseEncoding: "text",
+  };
+
+  if (payloadStr) {
+    body.payloadEncoding = "base64";
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(payloadStr);
+    let binary = "";
+    bytes.forEach((b) => { binary += String.fromCharCode(b); });
+    body.payload = btoa(binary);
+  }
+
   const res = await post<{ body: string; bodyEncoding: string; contentType: string; status: number }>(
     "/api/network/forwardProxy",
-    {
-      url,
-      method,
-      timeout: 15000,
-      contentType,
-      headers,
-      payload: {},
-      payloadEncoding: "text",
-      responseEncoding: "text",
-    }
+    body
   );
   if (res.code !== 0) throw new Error(res.msg);
   if (res.data.status < 200 || res.data.status >= 400) {

@@ -117,10 +117,14 @@ export class ReaderView {
     linkBtn.addEventListener("click", (e) => { e.stopPropagation(); });
 
     const summaryBtn = panel.querySelector(".rss-reader-ai-summary") as HTMLElement | null;
-    if (summaryBtn) summaryBtn.addEventListener("click", () => this.handleAISummary(summaryBtn));
+    if (summaryBtn) {
+      summaryBtn.addEventListener("click", (e) => { e.stopPropagation(); this.handleAISummary(summaryBtn); });
+    }
 
     const translateBtn = panel.querySelector(".rss-reader-ai-translate") as HTMLElement | null;
-    if (translateBtn) translateBtn.addEventListener("click", () => this.handleAITranslate(translateBtn));
+    if (translateBtn) {
+      translateBtn.addEventListener("click", (e) => { e.stopPropagation(); this.handleAITranslate(translateBtn); });
+    }
 
     const qaSend = panel.querySelector("#rss-ai-qa-send") as HTMLElement | null;
     if (qaSend) qaSend.addEventListener("click", () => this.handleAIQA());

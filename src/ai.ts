@@ -1,11 +1,10 @@
 import type { AISettings } from "./types";
-import { forwardProxy } from "./api";
 
-function buildHeaders(apiKey: string): { name: string; value: string }[] {
-  return [
-    { name: "Content-Type", value: "application/json" },
-    { name: "Authorization", value: `Bearer ${apiKey}` },
-  ];
+function buildHeaders(apiKey: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${apiKey}`,
+  };
 }
 
 interface ChatMessage {
@@ -25,27 +24,19 @@ async function chatCompletion(
     temperature: 0.3,
   });
 
-  const headers = buildHeaders(settings.apiKey);
+  const res = await fetch(settings.apiEndpoint, {
+    method: "POST",
+    headers: buildHeaders(settings.apiKey),
+    body,
+    signal: AbortSignal.timeout(15000),
+  });
 
-  const response = await forwardProxy(
-    settings.apiEndpoint,
-    "POST",
-    headers,
-    "application/json"
-  );
-
-  let payload = response;
-  if (typeof payload !== "string") {
-    payload = JSON.stringify(payload);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}: ${text.slice(0, 100)}`);
   }
 
-  let data: any;
-  try {
-    data = JSON.parse(payload);
-  } catch {
-    throw new Error("AI 响应解析失败");
-  }
-
+  const data = await res.json().catch(() => ({}));
   if (data.error) {
     throw new Error(data.error.message || "AI API 错误");
   }

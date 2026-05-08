@@ -30,6 +30,11 @@
     "订阅",
     "阅读器"
   ],
+  "networks": [
+    "https://api.deepseek.com",
+    "https://api.openai.com",
+    "https://api.anthropic.com"
+  ],
   "main": "index.js",
   "icon": "iconRSS"
 }
