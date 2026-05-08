@@ -21,22 +21,35 @@ export interface AISettings {
   apiEndpoint: string;
   model: string;
   monthlyCallLimit: number;
+
   summaryEnabled: boolean;
+  summaryLength: "short" | "medium" | "long";
+  summaryLang: "original" | "zh" | "en";
+  summaryPrompt: string;
+
   translateEnabled: boolean;
   translateTargetLang: string;
+  translateStyle: "literal" | "free" | "academic";
   autoTranslate: boolean;
+
   taggingEnabled: boolean;
   taggingMaxTags: number;
   taggingPresetLabels: string[];
+  tagOnlyNonChinese: boolean;
+
   digestEnabled: boolean;
   digestFrequency: "daily" | "weekly";
   digestHour: number;
   digestArticleCount: number;
   digestNotebookPath: string;
+  digestIncludeLink: boolean;
+
   qaEnabled: boolean;
+
   filterEnabled: boolean;
   filterKeywords: string;
   filterExcludeKeywords: string;
+  filterShowOnlyRelevant: boolean;
 }
 
 export function defaultAISettings(): AISettings {
@@ -47,22 +60,35 @@ export function defaultAISettings(): AISettings {
     apiEndpoint: "https://api.deepseek.com/v1/chat/completions",
     model: "deepseek-chat",
     monthlyCallLimit: 500,
+
     summaryEnabled: true,
+    summaryLength: "medium",
+    summaryLang: "zh",
+    summaryPrompt: "",
+
     translateEnabled: true,
     translateTargetLang: "中文",
+    translateStyle: "free",
     autoTranslate: false,
+
     taggingEnabled: false,
     taggingMaxTags: 5,
     taggingPresetLabels: ["科技", "商业", "编程", "设计", "创业", "AI", "阅读", "生活"],
+    tagOnlyNonChinese: false,
+
     digestEnabled: false,
     digestFrequency: "daily",
     digestHour: 8,
     digestArticleCount: 10,
     digestNotebookPath: "/RSS Digest",
+    digestIncludeLink: true,
+
     qaEnabled: true,
+
     filterEnabled: false,
     filterKeywords: "",
     filterExcludeKeywords: "",
+    filterShowOnlyRelevant: false,
   };
 }
 

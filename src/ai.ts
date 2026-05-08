@@ -47,30 +47,6 @@ async function chatCompletion(
   return { content, tokens };
 }
 
-const SUMMARY_PROMPT = `你是一个专业的文章摘要助手。请用中文总结以下文章的核心内容。
-
-要求：
-1. 用 3-5 个要点概括主要观点（每条 1-2 句）
-2. 最后用一句话总结全文
-3. 格式：每条要点以"• "开头
-4. 不要添加"这篇文章"等冗余开头
-
-文章内容：
-{content}
-
-标题：{title}`;
-
-const TRANSLATE_PROMPT = `请将以下内容翻译成{targetLang}。
-
-要求：
-1. 保持原文的格式和结构
-2. 专业术语翻译准确
-3. 语气自然流畅
-4. 只输出翻译结果，不要添加任何解释
-
-原文内容：
-{content}`;
-
 const TAG_PROMPT = `请为以下文章打标签。从预设标签库中选择最相关的标签。
 
 预设标签：{presets}
@@ -112,6 +88,60 @@ const DIGEST_PROMPT = `你是一个专业的新闻简报编辑。请为以下文
 文章列表：
 {articles}`;
 
+function buildSummaryPrompt(settings: AISettings, title: string, content: string): string {
+  if (settings.summaryPrompt && settings.summaryPrompt.trim()) {
+    return settings.summaryPrompt
+      .replace("{title}", title)
+      .replace("{content}", content);
+  }
+
+  const lengthMap: Record<string, string> = {
+    short: "用 2-3 个要点",
+    medium: "用 3-5 个要点",
+    long: "用 5-8 个要点",
+  };
+  const length = lengthMap[settings.summaryLength] || lengthMap.medium;
+
+  const langMap: Record<string, string> = {
+    original: "使用原文语言",
+    zh: "用中文",
+    en: "用英文",
+  };
+  const lang = langMap[settings.summaryLang] || langMap.zh;
+
+  return `你是一个专业的文章摘要助手。请${lang}总结以下文章的核心内容。
+
+要求：
+1. ${length}概括主要观点（每条 1-2 句）
+2. 最后用一句话总结全文
+3. 格式：每条要点以"• "开头
+4. 不要添加"这篇文章"等冗余开头
+
+文章内容：
+${content}
+
+标题：${title}`;
+}
+
+function buildTranslatePrompt(settings: AISettings, content: string): string {
+  const styleMap: Record<string, string> = {
+    literal: "保持原文的语序和表达方式，逐句直译",
+    free: "用自然流畅的方式意译，符合目标语言习惯",
+    academic: "使用学术风格，保持专业术语的准确性",
+  };
+  const style = styleMap[settings.translateStyle] || styleMap.free;
+
+  return `请将以下内容翻译成${settings.translateTargetLang}。
+
+要求：
+1. 保持原文的格式和结构
+2. ${style}
+3. 只输出翻译结果，不要添加任何解释
+
+原文内容：
+${content}`;
+}
+
 export async function aiSummarize(
   settings: AISettings,
   title: string,
@@ -120,9 +150,7 @@ export async function aiSummarize(
   const text = (content || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const truncated = text.length > 8000 ? text.slice(0, 8000) + "..." : text;
 
-  const prompt = SUMMARY_PROMPT
-    .replace("{title}", title)
-    .replace("{content}", truncated);
+  const prompt = buildSummaryPrompt(settings, title, truncated);
 
   const { content: result, tokens } = await chatCompletion(settings, [
     { role: "user", content: prompt },
@@ -139,9 +167,7 @@ export async function aiTranslate(
   const text = (content || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const truncated = text.length > 6000 ? text.slice(0, 6000) + "..." : text;
 
-  const prompt = TRANSLATE_PROMPT
-    .replace("{targetLang}", targetLang)
-    .replace("{content}", truncated);
+  const prompt = buildTranslatePrompt(settings, truncated).replace("{targetLang}", settings.translateTargetLang);
 
   const { content: result, tokens } = await chatCompletion(settings, [
     { role: "user", content: prompt },

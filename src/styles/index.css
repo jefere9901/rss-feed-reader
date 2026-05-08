@@ -1388,3 +1388,51 @@
 .rss-feed-manage-input {
   font-family: inherit;
 }
+
+.rss-ai-module {
+  border: 1px solid var(--rss-border);
+  border-radius: 8px;
+  margin: 6px 0;
+  overflow: hidden;
+}
+
+.rss-ai-module-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--rss-bg-hover);
+  font-size: 13px;
+  font-weight: 500;
+  gap: 6px;
+  user-select: none;
+}
+
+.rss-ai-module-header:hover {
+  background: var(--rss-primary-bg);
+}
+
+.rss-ai-module-arrow {
+  font-size: 10px;
+  color: var(--rss-text-muted);
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.rss-ai-module-content {
+  padding: 4px 8px 8px;
+  background: var(--rss-card-bg);
+}
+
+.rss-ai-module-content.collapsed {
+  display: none;
+}
+
+.rss-ai-module-body .rss-setting-row {
+  padding: 6px 4px;
+  border-bottom: none;
+  align-items: center;
+}
+
+.rss-ai-module-body .rss-setting-row:last-child {
+  border-bottom: none;
+}

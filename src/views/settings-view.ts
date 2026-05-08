@@ -15,6 +15,7 @@ export class SettingsView {
   private feedMgmtCollapsed = false;
   private generalCollapsed = false;
   private aiCollapsed = false;
+  private aiModuleCollapsed: Record<string, boolean> = {};
   private collapsedFolders: Set<string> = new Set();
 
   constructor(
@@ -1061,27 +1062,411 @@ export class SettingsView {
 
     const subDiv = document.createElement("div");
     subDiv.className = "rss-settings-subtitle";
-    subDiv.textContent = "⚙️ 功能开关";
+    subDiv.textContent = "⚙️ 功能配置";
     subDiv.style.marginTop = "12px";
     card.appendChild(subDiv);
 
-    const toggleItems: [string, string, keyof typeof ai][] = [
-      ["AI 摘要", "点击按钮生成文章摘要", "summaryEnabled"],
-      ["AI 翻译", "将外文文章翻译成中文", "translateEnabled"],
-      ["AI 智能标签", "抓取时自动为文章打标签", "taggingEnabled"],
-      ["AI 日报", "自动生成每日/每周阅读简报", "digestEnabled"],
-      ["AI 问答", "基于文章内容的对话问答", "qaEnabled"],
-      ["AI 兴趣过滤", "只显示感兴趣的文章", "filterEnabled"],
+    const modules: {
+      key: string;
+      icon: string;
+      name: string;
+      desc: string;
+      enabledKey: keyof typeof ai;
+      body: () => HTMLElement;
+    }[] = [
+      {
+        key: "summary",
+        icon: "🤖",
+        name: "AI 摘要",
+        desc: "点击按钮生成文章摘要",
+        enabledKey: "summaryEnabled",
+        body: () => {
+          const wrap = document.createElement("div");
+          wrap.className = "rss-ai-module-body";
+
+          const r1 = document.createElement("div");
+          r1.className = "rss-setting-row";
+          r1.innerHTML = `<div><div class="rss-setting-label">摘要长度</div><div class="rss-setting-desc">提取要点的详细程度</div></div>`;
+          const pills = document.createElement("div");
+          pills.className = "rss-pill-group";
+          (["short","medium","long"] as const).forEach(v => {
+            const b = document.createElement("button");
+            b.className = `rss-pill${ai.summaryLength === v ? " active" : ""}`;
+            b.textContent = { short: "简明", medium: "适中", long: "详细" }[v];
+            b.addEventListener("click", () => {
+              this.data = store.saveAISettings(this.data, { summaryLength: v } as any);
+              this.onDataChange(this.data); this.render();
+            });
+            pills.appendChild(b);
+          });
+          r1.appendChild(pills);
+          wrap.appendChild(r1);
+
+          const r2 = document.createElement("div");
+          r2.className = "rss-setting-row";
+          r2.innerHTML = `<div><div class="rss-setting-label">输出语言</div><div class="rss-setting-desc">摘要使用的语言</div></div>`;
+          const sel = document.createElement("select");
+          sel.className = "rss-select";
+          [
+            { v: "zh", l: "中文" },
+            { v: "original", l: "原文语言" },
+            { v: "en", l: "英文" },
+          ].forEach(o => {
+            const opt = document.createElement("option");
+            opt.value = o.v; opt.textContent = o.l;
+            if (ai.summaryLang === o.v) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          sel.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { summaryLang: sel.value } as any);
+            this.onDataChange(this.data); this.render();
+          });
+          r2.appendChild(sel);
+          wrap.appendChild(r2);
+
+          const r3 = document.createElement("div");
+          r3.className = "rss-setting-row";
+          r3.style.flexDirection = "column";
+          r3.style.alignItems = "stretch";
+          r3.innerHTML = `<div><div class="rss-setting-label">自定义 Prompt 模板</div><div class="rss-setting-desc">留空则使用默认模板。支持 {title} {content} 占位符</div></div>`;
+          const ta = document.createElement("textarea");
+          ta.className = "rss-add-form-input";
+          ta.value = ai.summaryPrompt;
+          ta.placeholder = "留空使用默认模板...";
+          ta.style.cssText = "width:100%;height:60px;font-size:11px;font-family:inherit;resize:vertical;margin-top:4px;";
+          ta.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { summaryPrompt: ta.value } as any);
+            this.onDataChange(this.data);
+          });
+          r3.appendChild(ta);
+          wrap.appendChild(r3);
+
+          return wrap;
+        },
+      },
+      {
+        key: "translate",
+        icon: "🌐",
+        name: "AI 翻译",
+        desc: "将外文文章翻译成目标语言",
+        enabledKey: "translateEnabled",
+        body: () => {
+          const wrap = document.createElement("div");
+          wrap.className = "rss-ai-module-body";
+
+          const r1 = document.createElement("div");
+          r1.className = "rss-setting-row";
+          r1.innerHTML = `<div><div class="rss-setting-label">目标语言</div><div class="rss-setting-desc">翻译的目标语言</div></div>`;
+          const inp = document.createElement("input");
+          inp.type = "text";
+          inp.value = ai.translateTargetLang;
+          inp.className = "rss-add-form-input";
+          inp.style.cssText = "width:120px;font-size:11px;";
+          inp.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { translateTargetLang: inp.value } as any);
+            this.onDataChange(this.data); this.render();
+          });
+          r1.appendChild(inp);
+          wrap.appendChild(r1);
+
+          const r2 = document.createElement("div");
+          r2.className = "rss-setting-row";
+          r2.innerHTML = `<div><div class="rss-setting-label">翻译风格</div><div class="rss-setting-desc">直译/意译/学术</div></div>`;
+          const pills2 = document.createElement("div");
+          pills2.className = "rss-pill-group";
+          (["literal","free","academic"] as const).forEach(v => {
+            const b = document.createElement("button");
+            b.className = `rss-pill${ai.translateStyle === v ? " active" : ""}`;
+            b.textContent = { literal: "直译", free: "意译", academic: "学术" }[v];
+            b.addEventListener("click", () => {
+              this.data = store.saveAISettings(this.data, { translateStyle: v } as any);
+              this.onDataChange(this.data); this.render();
+            });
+            pills2.appendChild(b);
+          });
+          r2.appendChild(pills2);
+          wrap.appendChild(r2);
+
+          const r3 = document.createElement("div");
+          r3.className = "rss-setting-row";
+          r3.innerHTML = `<div><div class="rss-setting-label">自动翻译</div><div class="rss-setting-desc">打开外文文章时自动翻译</div></div>`;
+          const t = document.createElement("div");
+          t.className = `rss-toggle${ai.autoTranslate ? " active" : ""}`;
+          t.addEventListener("click", () => {
+            this.data = store.saveAISettings(this.data, { autoTranslate: !ai.autoTranslate } as any);
+            this.onDataChange(this.data); this.render();
+          });
+          r3.appendChild(t);
+          wrap.appendChild(r3);
+
+          return wrap;
+        },
+      },
+      {
+        key: "tagging",
+        icon: "🏷️",
+        name: "AI 智能标签",
+        desc: "抓取时自动为文章打标签",
+        enabledKey: "taggingEnabled",
+        body: () => {
+          const wrap = document.createElement("div");
+          wrap.className = "rss-ai-module-body";
+
+          const r1 = document.createElement("div");
+          r1.className = "rss-setting-row";
+          r1.innerHTML = `<div><div class="rss-setting-label">最多标签数</div><div class="rss-setting-desc">每篇文章生成的标签数量上限</div></div>`;
+          const inp = document.createElement("input");
+          inp.type = "number";
+          inp.value = String(ai.taggingMaxTags);
+          inp.className = "rss-add-form-input";
+          inp.style.cssText = "width:60px;font-size:11px;";
+          inp.min = "1"; inp.max = "10";
+          inp.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { taggingMaxTags: parseInt(inp.value) || 5 } as any);
+            this.onDataChange(this.data);
+          });
+          r1.appendChild(inp);
+          wrap.appendChild(r1);
+
+          const r2 = document.createElement("div");
+          r2.className = "rss-setting-row";
+          r2.style.flexDirection = "column";
+          r2.style.alignItems = "stretch";
+          r2.innerHTML = `<div><div class="rss-setting-label">预设标签库</div><div class="rss-setting-desc">逗号分隔，AI 优先从中选择</div></div>`;
+          const ta = document.createElement("textarea");
+          ta.className = "rss-add-form-input";
+          ta.value = ai.taggingPresetLabels.join(", ");
+          ta.placeholder = "科技, 商业, 编程, 设计, 创业, AI";
+          ta.style.cssText = "width:100%;height:48px;font-size:11px;font-family:inherit;resize:vertical;margin-top:4px;";
+          ta.addEventListener("change", () => {
+            const labels = ta.value.split(/[,，]/).map((s: string) => s.trim()).filter(Boolean);
+            this.data = store.saveAISettings(this.data, { taggingPresetLabels: labels } as any);
+            this.onDataChange(this.data);
+          });
+          r2.appendChild(ta);
+          wrap.appendChild(r2);
+
+          const r3 = document.createElement("div");
+          r3.className = "rss-setting-row";
+          r3.innerHTML = `<div><div class="rss-setting-label">仅非中文文章</div><div class="rss-setting-desc">只对非中文内容打标签</div></div>`;
+          const t = document.createElement("div");
+          t.className = `rss-toggle${ai.tagOnlyNonChinese ? " active" : ""}`;
+          t.addEventListener("click", () => {
+            this.data = store.saveAISettings(this.data, { tagOnlyNonChinese: !ai.tagOnlyNonChinese } as any);
+            this.onDataChange(this.data); this.render();
+          });
+          r3.appendChild(t);
+          wrap.appendChild(r3);
+
+          return wrap;
+        },
+      },
+      {
+        key: "digest",
+        icon: "📰",
+        name: "AI 日报",
+        desc: "自动生成每日/每周阅读简报",
+        enabledKey: "digestEnabled",
+        body: () => {
+          const wrap = document.createElement("div");
+          wrap.className = "rss-ai-module-body";
+
+          const r1 = document.createElement("div");
+          r1.className = "rss-setting-row";
+          r1.innerHTML = `<div><div class="rss-setting-label">频率</div><div class="rss-setting-desc">每天/每周生成一次</div></div>`;
+          const pills = document.createElement("div");
+          pills.className = "rss-pill-group";
+          (["daily","weekly"] as const).forEach(v => {
+            const b = document.createElement("button");
+            b.className = `rss-pill${ai.digestFrequency === v ? " active" : ""}`;
+            b.textContent = v === "daily" ? "每天" : "每周";
+            b.addEventListener("click", () => {
+              this.data = store.saveAISettings(this.data, { digestFrequency: v } as any);
+              this.onDataChange(this.data); this.render();
+            });
+            pills.appendChild(b);
+          });
+          r1.appendChild(pills);
+          wrap.appendChild(r1);
+
+          const r2 = document.createElement("div");
+          r2.className = "rss-setting-row";
+          r2.innerHTML = `<div><div class="rss-setting-label">生成时间</div><div class="rss-setting-desc">每天几点执行（0-23）</div></div>`;
+          const inp = document.createElement("input");
+          inp.type = "number";
+          inp.value = String(ai.digestHour);
+          inp.className = "rss-add-form-input";
+          inp.style.cssText = "width:60px;font-size:11px;";
+          inp.min = "0"; inp.max = "23";
+          inp.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { digestHour: parseInt(inp.value) || 8 } as any);
+            this.onDataChange(this.data);
+          });
+          r2.appendChild(inp);
+          wrap.appendChild(r2);
+
+          const r3 = document.createElement("div");
+          r3.className = "rss-setting-row";
+          r3.innerHTML = `<div><div class="rss-setting-label">精选篇数</div><div class="rss-setting-desc">日报中包含的文章数量</div></div>`;
+          const inp2 = document.createElement("input");
+          inp2.type = "number";
+          inp2.value = String(ai.digestArticleCount);
+          inp2.className = "rss-add-form-input";
+          inp2.style.cssText = "width:60px;font-size:11px;";
+          inp2.min = "3"; inp2.max = "50";
+          inp2.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { digestArticleCount: parseInt(inp2.value) || 10 } as any);
+            this.onDataChange(this.data);
+          });
+          r3.appendChild(inp2);
+          wrap.appendChild(r3);
+
+          const r4 = document.createElement("div");
+          r4.className = "rss-setting-row";
+          r4.innerHTML = `<div><div class="rss-setting-label">输出路径</div><div class="rss-setting-desc">简报保存到哪个笔记本路径</div></div>`;
+          const inp3 = document.createElement("input");
+          inp3.type = "text";
+          inp3.value = ai.digestNotebookPath;
+          inp3.className = "rss-add-form-input";
+          inp3.style.cssText = "width:140px;font-size:11px;";
+          inp3.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { digestNotebookPath: inp3.value } as any);
+            this.onDataChange(this.data);
+          });
+          r4.appendChild(inp3);
+          wrap.appendChild(r4);
+
+          const r5 = document.createElement("div");
+          r5.className = "rss-setting-row";
+          r5.innerHTML = `<div><div class="rss-setting-label">包含原文链接</div><div class="rss-setting-desc">在日报中附带原文链接</div></div>`;
+          const t = document.createElement("div");
+          t.className = `rss-toggle${ai.digestIncludeLink ? " active" : ""}`;
+          t.addEventListener("click", () => {
+            this.data = store.saveAISettings(this.data, { digestIncludeLink: !ai.digestIncludeLink } as any);
+            this.onDataChange(this.data); this.render();
+          });
+          r5.appendChild(t);
+          wrap.appendChild(r5);
+
+          return wrap;
+        },
+      },
+      {
+        key: "qa",
+        icon: "💬",
+        name: "AI 问答",
+        desc: "基于文章内容的对话问答",
+        enabledKey: "qaEnabled",
+        body: () => {
+          const wrap = document.createElement("div");
+          wrap.className = "rss-ai-module-body";
+          wrap.innerHTML = `<div class="rss-setting-desc" style="padding:4px 0;color:var(--rss-text-muted);">无额外配置，开启后阅读器底部显示问答输入框。</div>`;
+          return wrap;
+        },
+      },
+      {
+        key: "filter",
+        icon: "🔍",
+        name: "AI 兴趣过滤",
+        desc: "只显示感兴趣的文章",
+        enabledKey: "filterEnabled",
+        body: () => {
+          const wrap = document.createElement("div");
+          wrap.className = "rss-ai-module-body";
+
+          const r1 = document.createElement("div");
+          r1.className = "rss-setting-row";
+          r1.style.flexDirection = "column";
+          r1.style.alignItems = "stretch";
+          r1.innerHTML = `<div><div class="rss-setting-label">兴趣关键词</div><div class="rss-setting-desc">逗号分隔，文章包含这些词则显示</div></div>`;
+          const ta = document.createElement("textarea");
+          ta.className = "rss-add-form-input";
+          ta.value = ai.filterKeywords;
+          ta.placeholder = "AI, 编程, 创业, 科技";
+          ta.style.cssText = "width:100%;height:48px;font-size:11px;font-family:inherit;resize:vertical;margin-top:4px;";
+          ta.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { filterKeywords: ta.value } as any);
+            this.onDataChange(this.data);
+          });
+          r1.appendChild(ta);
+          wrap.appendChild(r1);
+
+          const r2 = document.createElement("div");
+          r2.className = "rss-setting-row";
+          r2.style.flexDirection = "column";
+          r2.style.alignItems = "stretch";
+          r2.innerHTML = `<div><div class="rss-setting-label">排除关键词</div><div class="rss-setting-desc">逗号分隔，文章包含这些词则隐藏</div></div>`;
+          const ta2 = document.createElement("textarea");
+          ta2.className = "rss-add-form-input";
+          ta2.value = ai.filterExcludeKeywords;
+          ta2.placeholder = "体育, 娱乐, 八卦";
+          ta2.style.cssText = "width:100%;height:48px;font-size:11px;font-family:inherit;resize:vertical;margin-top:4px;";
+          ta2.addEventListener("change", () => {
+            this.data = store.saveAISettings(this.data, { filterExcludeKeywords: ta2.value } as any);
+            this.onDataChange(this.data);
+          });
+          r2.appendChild(ta2);
+          wrap.appendChild(r2);
+
+          const r3 = document.createElement("div");
+          r3.className = "rss-setting-row";
+          r3.innerHTML = `<div><div class="rss-setting-label">仅显示相关</div><div class="rss-setting-desc">开启后只展示过滤后的文章</div></div>`;
+          const t = document.createElement("div");
+          t.className = `rss-toggle${ai.filterShowOnlyRelevant ? " active" : ""}`;
+          t.addEventListener("click", () => {
+            this.data = store.saveAISettings(this.data, { filterShowOnlyRelevant: !ai.filterShowOnlyRelevant } as any);
+            this.onDataChange(this.data); this.render();
+          });
+          r3.appendChild(t);
+          wrap.appendChild(r3);
+
+          return wrap;
+        },
+      },
     ];
 
-    toggleItems.forEach(([label, desc, key]) => {
-      const row = document.createElement("div");
-      row.className = "rss-setting-row";
-      const ld = document.createElement("div");
-      ld.innerHTML = `<div class="rss-setting-label">${label}</div><div class="rss-setting-desc">${desc}</div>`;
-      row.appendChild(ld);
-      row.appendChild(makeToggle(key, `已启用：${label}`, `已关闭：${label}`));
-      card.appendChild(row);
+    modules.forEach((mod) => {
+      const isEnabled = !!(ai as any)[mod.enabledKey];
+      const isOpen = !this.aiModuleCollapsed[mod.key];
+
+      const modWrap = document.createElement("div");
+      modWrap.className = "rss-ai-module";
+
+      const header = document.createElement("div");
+      header.className = "rss-ai-module-header";
+      header.style.cursor = "pointer";
+      header.innerHTML = `
+        <span class="rss-ai-module-arrow">${isOpen ? "▼" : "▶"}</span>
+        <span>${mod.icon} ${mod.name}</span>
+        <span style="margin-left:8px;font-size:10px;color:var(--rss-text-muted);">${mod.desc}</span>
+        <span style="flex:1"></span>
+      `;
+
+      const toggle = document.createElement("div");
+      toggle.className = `rss-toggle${isEnabled ? " active" : ""}`;
+      toggle.title = isEnabled ? `已启用：${mod.name}` : `已关闭：${mod.name}`;
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.data = store.saveAISettings(this.data, { [mod.enabledKey]: !isEnabled } as any);
+        this.onDataChange(this.data);
+        this.render();
+      });
+      header.appendChild(toggle);
+
+      header.addEventListener("click", () => {
+        this.aiModuleCollapsed[mod.key] = !this.aiModuleCollapsed[mod.key];
+        this.render();
+      });
+      modWrap.appendChild(header);
+
+      const bodyWrap = document.createElement("div");
+      bodyWrap.className = `rss-ai-module-content${isOpen ? "" : " collapsed"}`;
+      if (isEnabled && isOpen) {
+        bodyWrap.appendChild(mod.body());
+      }
+      modWrap.appendChild(bodyWrap);
+
+      card.appendChild(modWrap);
     });
 
     body.appendChild(card);
