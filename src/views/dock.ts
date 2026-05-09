@@ -49,11 +49,21 @@ export class DockWidget {
     this.data = data;
     if (this.feedView) this.feedView.updateData(data);
     if (this.settingsView) this.settingsView.updateData(data);
-    if (this.currentTab === "feed") {
-      this.feedView.render();
-    }
+    this.renderView();
     this.updateTabBadges();
     this.updateBottomBar();
+  }
+
+  private renderView(): void {
+    if (this.currentTab === "feed") {
+      if (this.feedView && this.contentEl.contains(this.feedView.container)) {
+        this.feedView.render();
+      }
+    } else {
+      if (this.settingsView && this.contentEl.contains(this.settingsView.container)) {
+        this.settingsView.render();
+      }
+    }
   }
 
   private build(): void {
