@@ -32,6 +32,7 @@ export class FeedView {
   render(): void {
     this.container.innerHTML = "";
     this.container.appendChild(this.createRefreshBar());
+    this.container.appendChild(this.createTimeFilterBar());
 
     if (this.data.feeds.length === 0) {
       this.container.appendChild(this.createEmptyState());
@@ -77,6 +78,45 @@ export class FeedView {
     return bar;
   }
 
+  private createTimeFilterBar(): HTMLElement {
+    const bar = document.createElement("div");
+    bar.className = "rss-time-filter";
+
+    const label = document.createElement("span");
+    label.textContent = "⏳";
+    label.style.cssText = "font-size:11px;margin-right:6px;color:var(--rss-text-muted);";
+
+    const pills = document.createElement("div");
+    pills.className = "rss-pill-group";
+    pills.style.gap = "3px";
+
+    const options: { value: "1d" | "7d" | "30d" | "all"; label: string }[] = [
+      { value: "1d", label: "今天" },
+      { value: "7d", label: "7天" },
+      { value: "30d", label: "30天" },
+      { value: "all", label: "全部" },
+    ];
+
+    const current = this.data.settings.articlesTimeFilter;
+
+    options.forEach((opt) => {
+      const pill = document.createElement("button");
+      pill.className = `rss-pill${current === opt.value ? " active" : ""}`;
+      pill.textContent = opt.label;
+      pill.style.cssText = "font-size:10px;padding:2px 8px;";
+      pill.addEventListener("click", () => {
+        this.data = store.saveSettings(this.data, { articlesTimeFilter: opt.value });
+        this.onDataChange(this.data);
+        this.render();
+      });
+      pills.appendChild(pill);
+    });
+
+    bar.appendChild(label);
+    bar.appendChild(pills);
+    return bar;
+  }
+
   private async handleRefresh(bar: HTMLElement): Promise<void> {
     if (bar.classList.contains("loading")) return;
     bar.classList.add("loading");
@@ -96,7 +136,7 @@ export class FeedView {
 
         const parsed = await fetchFeed(feed.url, this.data.settings.bypassPaywall);
         this.data = store.setFeedError(this.data, feed.id, "");
-        const existing = store.getFeedArticles(this.data, feed.id);
+        const existing = store.getFeedArticles(this.data, feed.id, "all");
         const existingLinks = new Set(existing.map((a) => a.link));
 
         const newArts: Article[] = parsed.articles

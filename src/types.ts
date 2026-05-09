@@ -146,6 +146,7 @@ export interface AppSettings {
   newArticlePosition: "top" | "bottom";
   autoRefreshMinutes: number;
   bypassPaywall: boolean;
+  articlesTimeFilter: "1d" | "7d" | "30d" | "all";
 }
 
 export interface PluginData {

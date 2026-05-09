@@ -42,6 +42,7 @@ function defaultSettings(): AppSettings {
     newArticlePosition: "top",
     autoRefreshMinutes: 0,
     bypassPaywall: false,
+    articlesTimeFilter: "7d",
   };
 }
 
@@ -361,28 +362,47 @@ export function updateFeedUrl(
   return { ...data };
 }
 
+export function getArticleTimeCutoff(filter: "1d" | "7d" | "30d" | "all"): number {
+  if (filter === "all") return 0;
+  const map: Record<string, number> = { "1d": 1, "7d": 7, "30d": 30 };
+  return Date.now() - map[filter] * 24 * 60 * 60 * 1000;
+}
+
 export function getFeedArticles(
   data: PluginData,
-  feedID: string
+  feedID: string,
+  timeFilter?: "1d" | "7d" | "30d" | "all"
 ): Article[] {
-  return data.articles
-    .filter((a) => a.feedID === feedID)
-    .sort(
-      (a, b) =>
-        new Date(b.published || b.id).getTime() -
-        new Date(a.published || a.id).getTime()
-    );
+  const cutoff = getArticleTimeCutoff(timeFilter || data.settings.articlesTimeFilter);
+  let filtered = data.articles.filter((a) => a.feedID === feedID);
+  if (cutoff > 0) {
+    filtered = filtered.filter((a) => {
+      const t = new Date(a.published || a.id).getTime();
+      return t >= cutoff;
+    });
+  }
+  filtered.sort(
+    (a, b) =>
+      new Date(b.published || b.id).getTime() -
+      new Date(a.published || a.id).getTime()
+  );
+  return filtered;
 }
 
 export function getUnreadCount(data: PluginData): number {
-  return data.articles.filter((a) => !a.read).length;
+  const cutoff = getArticleTimeCutoff(data.settings.articlesTimeFilter);
+  if (cutoff === 0) {
+    return data.articles.filter((a) => !a.read).length;
+  }
+  return data.articles.filter((a) => !a.read && new Date(a.published || a.id).getTime() >= cutoff).length;
 }
 
 export function getFeedUnreadCount(
   data: PluginData,
   feedID: string
 ): number {
-  return data.articles.filter((a) => a.feedID === feedID && !a.read).length;
+  const articles = getFeedArticles(data, feedID);
+  return articles.filter((a) => !a.read).length;
 }
 
 export function addFolder(data: PluginData, name: string, parentID: string | null = null): PluginData {

@@ -190,6 +190,14 @@
   box-shadow: var(--rss-shadow-hover);
 }
 
+.rss-time-filter {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px 6px;
+  margin: 0 12px;
+  font-size: 12px;
+}
+
 .rss-refresh-icon {
   width: 28px;
   height: 28px;
