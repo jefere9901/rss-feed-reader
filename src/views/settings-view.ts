@@ -398,52 +398,30 @@ export class SettingsView {
         let skipCount = 0;
         let folderCount = 0;
 
-        const processOutlines = async (items: any[], parentFolder: string | null) => {
+        const pendingFetches: { feedID: string; url: string }[] = [];
+
+        const processOutlines = (items: any[], parentFolder: string | null) => {
           for (const item of items) {
             if (item.xmlUrl) {
-              try {
-                if (store.hasFeedUrl(this.data, item.xmlUrl)) {
-                  skipCount++;
-                } else {
-                  const feedID = `feed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                  const newFeed = {
-                    id: feedID,
-                    folderID: parentFolder,
-                    name: store.cleanFeedName(item.text, item.title, item.xmlUrl),
-                    url: item.xmlUrl,
-                    icon: "📡",
-                    lastFetchTime: "",
-                    lastFetchError: "",
-                    docID: "",
-                    articleIDs: [],
-                  };
-                  this.data = store.addFeed(this.data, newFeed);
-                  feedCount++;
-
-                  try {
-                    const parsed = await fetchFeed(item.xmlUrl, this.data.settings.bypassPaywall);
-
-                    if (parsed.icon) {
-                      this.data = store.setFeedIcon(this.data, feedID, parsed.icon);
-                    }
-
-                    if (parsed.articles.length > 0) {
-                      const articles = parsed.articles.map((a) => ({
-                        id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                        feedID,
-                        title: a.title,
-                        link: a.link,
-                        summary: a.summary,
-                        content: a.content,
-                        published: a.published,
-                        author: a.author,
-                        read: false,
-                      }));
-                      this.data = store.addArticles(this.data, feedID, articles);
-                    }
-                  } catch {}
-                }
-              } catch {}
+              if (store.hasFeedUrl(this.data, item.xmlUrl)) {
+                skipCount++;
+              } else {
+                const feedID = `feed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                const newFeed = {
+                  id: feedID,
+                  folderID: parentFolder,
+                  name: store.cleanFeedName(item.text, item.title, item.xmlUrl),
+                  url: item.xmlUrl,
+                  icon: "📡",
+                  lastFetchTime: "",
+                  lastFetchError: "",
+                  docID: "",
+                  articleIDs: [],
+                };
+                this.data = store.addFeed(this.data, newFeed);
+                feedCount++;
+                pendingFetches.push({ feedID, url: item.xmlUrl });
+              }
             }
 
             if (item.children && item.children.length > 0) {
@@ -458,12 +436,41 @@ export class SettingsView {
                 });
                 folderCount++;
               }
-              await processOutlines(item.children, folderID);
+              processOutlines(item.children, folderID);
             }
           }
         };
 
-        await processOutlines(outlines, null);
+        processOutlines(outlines, null);
+
+        if (pendingFetches.length > 0) {
+          const batchSize = 5;
+          for (let i = 0; i < pendingFetches.length; i += batchSize) {
+            const batch = pendingFetches.slice(i, i + batchSize);
+            await Promise.all(batch.map(async ({ feedID, url }) => {
+              try {
+                const parsed = await fetchFeed(url, this.data.settings.bypassPaywall);
+                if (parsed.icon) {
+                  this.data = store.setFeedIcon(this.data, feedID, parsed.icon);
+                }
+                if (parsed.articles.length > 0) {
+                  const articles = parsed.articles.map((a) => ({
+                    id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                    feedID,
+                    title: a.title,
+                    link: a.link,
+                    summary: a.summary,
+                    content: a.content,
+                    published: a.published,
+                    author: a.author,
+                    read: false,
+                  }));
+                  this.data = store.addArticles(this.data, feedID, articles);
+                }
+              } catch {}
+            }));
+          }
+        }
 
         if (feedCount > 0 || skipCount > 0) {
           this.onDataChange(this.data);

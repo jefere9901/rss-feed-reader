@@ -232,9 +232,18 @@ export class FeedView {
     }
 
     const folderFeeds = store.getFolderFeeds(this.data, folder.id);
+
+    // Single pass: precompute feed-article-unread counts
+    const cutoff = store.getArticleTimeCutoff(this.data.settings.articlesTimeFilter);
+    const unreadByFeed: Record<string, number> = {};
+    for (const a of this.data.articles) {
+      if (a.read) continue;
+      if (cutoff > 0 && new Date(a.published || a.id).getTime() < cutoff) continue;
+      unreadByFeed[a.feedID] = (unreadByFeed[a.feedID] || 0) + 1;
+    }
     let folderUnread = 0;
     folderFeeds.forEach((f) => {
-      folderUnread += store.getFeedUnreadCount(this.data, f.id);
+      folderUnread += unreadByFeed[f.id] || 0;
     });
 
     const header = document.createElement("div");
@@ -278,7 +287,7 @@ export class FeedView {
     }
 
     const articles = store.getFeedArticles(this.data, feed.id);
-    const unread = store.getFeedUnreadCount(this.data, feed.id);
+    const unread = articles.filter(a => !a.read).length;
     const displayIcon = feed.icon || "📡";
 
     const header = document.createElement("div");

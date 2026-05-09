@@ -401,8 +401,12 @@ export function getFeedUnreadCount(
   data: PluginData,
   feedID: string
 ): number {
-  const articles = getFeedArticles(data, feedID);
-  return articles.filter((a) => !a.read).length;
+  const cutoff = getArticleTimeCutoff(data.settings.articlesTimeFilter);
+  return data.articles.filter((a) => {
+    if (a.feedID !== feedID || a.read) return false;
+    if (cutoff > 0 && new Date(a.published || a.id).getTime() < cutoff) return false;
+    return true;
+  }).length;
 }
 
 export function addFolder(data: PluginData, name: string, parentID: string | null = null): PluginData {

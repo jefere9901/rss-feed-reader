@@ -51,7 +51,8 @@ async function main() {
   console.log("\n--- 第 1 次导入 ---");
   const fc1 = page.waitForEvent("filechooser");
   await page.evaluate(() => { for (const b of document.querySelectorAll("button")) { if (b.textContent.includes("导入 OPML")) { b.click(); return; } } });
-  await (await fc1).setFiles(OPML_PATH);
+  const fc1Evt = await fc1;
+  await fc1Evt.setFiles(OPML_PATH);
   console.log("   等待导入 (60s)...");
   await page.waitForTimeout(60000);
 
@@ -63,7 +64,8 @@ async function main() {
   console.log("\n--- 第 2 次导入 (应该全部跳过) ---");
   const fc2 = page.waitForEvent("filechooser");
   await page.evaluate(() => { for (const b of document.querySelectorAll("button")) { if (b.textContent.includes("导入 OPML")) { b.click(); return; } } });
-  await (await fc2).setFiles(OPML_PATH);
+  const fc2Evt = await fc2;
+  await fc2Evt.setFiles(OPML_PATH);
   console.log("   等待导入 (10s)...");
   await page.waitForTimeout(10000);
 
@@ -76,7 +78,8 @@ async function main() {
   console.log("\n--- 第 3 次导入 (仍然全部跳过) ---");
   const fc3 = page.waitForEvent("filechooser");
   await page.evaluate(() => { for (const b of document.querySelectorAll("button")) { if (b.textContent.includes("导入 OPML")) { b.click(); return; } } });
-  await (await fc3).setFiles(OPML_PATH);
+  const fc3Evt = await fc3;
+  await fc3Evt.setFiles(OPML_PATH);
   await page.waitForTimeout(10000);
 
   const after3 = await countItems();
