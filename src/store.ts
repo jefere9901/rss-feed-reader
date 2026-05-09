@@ -431,6 +431,15 @@ export function getFolderFeeds(data: PluginData, folderID: string | null): Feed[
   return data.feeds.filter((f) => f.folderID === folderID);
 }
 
+export function hasFeedUrl(data: PluginData, url: string): boolean {
+  return data.feeds.some((f) => f.url === url);
+}
+
+export function findFolderByName(data: PluginData, name: string, parentID: string | null): string | null {
+  const found = data.folders.find((f) => f.name === name && f.parentID === parentID);
+  return found ? found.id : null;
+}
+
 export function resetAll(data: PluginData): PluginData {
   data.folders = [];
   data.feeds = [];

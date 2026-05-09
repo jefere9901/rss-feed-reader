@@ -395,72 +395,84 @@ export class SettingsView {
         }
 
         let feedCount = 0;
+        let skipCount = 0;
+        let folderCount = 0;
 
         const processOutlines = async (items: any[], parentFolder: string | null) => {
           for (const item of items) {
             if (item.xmlUrl) {
               try {
-                const feedID = `feed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                const newFeed = {
-                  id: feedID,
-                  folderID: parentFolder,
-                  name: store.cleanFeedName(item.text, item.title, item.xmlUrl),
-                  url: item.xmlUrl,
-                  icon: "📡",
-                  lastFetchTime: "",
-                  lastFetchError: "",
-                  docID: "",
-                  articleIDs: [],
-                };
-                this.data = store.addFeed(this.data, newFeed);
-                feedCount++;
+                if (store.hasFeedUrl(this.data, item.xmlUrl)) {
+                  skipCount++;
+                } else {
+                  const feedID = `feed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                  const newFeed = {
+                    id: feedID,
+                    folderID: parentFolder,
+                    name: store.cleanFeedName(item.text, item.title, item.xmlUrl),
+                    url: item.xmlUrl,
+                    icon: "📡",
+                    lastFetchTime: "",
+                    lastFetchError: "",
+                    docID: "",
+                    articleIDs: [],
+                  };
+                  this.data = store.addFeed(this.data, newFeed);
+                  feedCount++;
 
-                try {
-                  const parsed = await fetchFeed(item.xmlUrl, this.data.settings.bypassPaywall);
+                  try {
+                    const parsed = await fetchFeed(item.xmlUrl, this.data.settings.bypassPaywall);
 
-                  if (parsed.icon) {
-                    this.data = store.setFeedIcon(this.data, feedID, parsed.icon);
-                  }
+                    if (parsed.icon) {
+                      this.data = store.setFeedIcon(this.data, feedID, parsed.icon);
+                    }
 
-                  if (parsed.articles.length > 0) {
-                    const articles = parsed.articles.map((a) => ({
-                      id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                      feedID,
-                      title: a.title,
-                      link: a.link,
-                      summary: a.summary,
-                      content: a.content,
-                      published: a.published,
-                      author: a.author,
-                      read: false,
-                    }));
-                    this.data = store.addArticles(this.data, feedID, articles);
-                  }
-                } catch {}
+                    if (parsed.articles.length > 0) {
+                      const articles = parsed.articles.map((a) => ({
+                        id: `article-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        feedID,
+                        title: a.title,
+                        link: a.link,
+                        summary: a.summary,
+                        content: a.content,
+                        published: a.published,
+                        author: a.author,
+                        read: false,
+                      }));
+                      this.data = store.addArticles(this.data, feedID, articles);
+                    }
+                  } catch {}
+                }
               } catch {}
             }
 
             if (item.children && item.children.length > 0) {
-              let folderID: string | null = null;
-              if (item.text || item.title) {
+              const folderName = item.text || item.title || "未命名";
+              let folderID = store.findFolderByName(this.data, folderName, parentFolder);
+              if (!folderID) {
                 folderID = `folder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
                 this.data.folders.push({
                   id: folderID,
-                  name: item.text || item.title || "未命名",
+                  name: folderName,
                   parentID: parentFolder,
                 });
+                folderCount++;
               }
-              await processOutlines(item.children, folderID || parentFolder);
+              await processOutlines(item.children, folderID);
             }
           }
         };
 
         await processOutlines(outlines, null);
 
-        if (feedCount > 0) {
+        if (feedCount > 0 || skipCount > 0) {
           this.onDataChange(this.data);
           this.render();
-          api.pushMsg(`✅ 成功导入 ${feedCount} 个订阅源`);
+          const msgParts: string[] = [];
+          if (feedCount > 0) msgParts.push(`新增 ${feedCount} 个`);
+          if (skipCount > 0) msgParts.push(`跳过 ${skipCount} 个重复`);
+          if (folderCount > 0) msgParts.push(`创建 ${folderCount} 个文件夹`);
+          api.pushMsg(`✅ OPML 导入完成：${msgParts.join("，")}`);
         } else {
           api.pushErrMsg("未能从 OPML 文件中解析出有效订阅");
         }
