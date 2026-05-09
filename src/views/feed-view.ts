@@ -105,9 +105,17 @@ export class FeedView {
       pill.textContent = opt.label;
       pill.style.cssText = "font-size:10px;padding:2px 8px;";
       pill.addEventListener("click", () => {
-        this.data = store.saveSettings(this.data, { articlesTimeFilter: opt.value });
-        this.onDataChange(this.data);
-        this.render();
+        if (opt.value !== current) {
+          const needsRefresh = opt.value === "30d" || opt.value === "all";
+          this.data = store.saveSettings(this.data, { articlesTimeFilter: opt.value });
+          this.onDataChange(this.data);
+          this.render();
+          if (needsRefresh) {
+            api.pushMsg(`⏳ 已切换到「${opt.label}」，正在重新抓取所有订阅源...`);
+            const bar = this.container.querySelector(".rss-refresh-bar") as HTMLElement;
+            if (bar) setTimeout(() => this.handleRefresh(bar), 300);
+          }
+        }
       });
       pills.appendChild(pill);
     });

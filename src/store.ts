@@ -133,6 +133,7 @@ export function initStore(plugin: any): PluginData {
       aiCache: Array.isArray(fileData.aiCache) ? fileData.aiCache : [],
     };
     repairFeedNames(result);
+    pruneArticles(result);
     return result;
   }
 
@@ -158,6 +159,7 @@ export function initStore(plugin: any): PluginData {
           aiCache: Array.isArray(data.aiCache) ? data.aiCache : [],
         };
         repairFeedNames(result);
+        pruneArticles(result);
         return result;
       }
     }
@@ -183,8 +185,12 @@ export function initStore(plugin: any): PluginData {
               feeds: Array.isArray(data.feeds) ? data.feeds : [],
               articles: Array.isArray(data.articles) ? data.articles : [],
               settings: { ...defaultSettings(), ...(data.settings || {}) },
+              aiSettings: { ...defaultAISettings(), ...(data.aiSettings || {}) },
+              aiUsage: { month: "", calls: 0, tokens: 0, cost: 0, ...(data.aiUsage || {}) },
+              aiCache: Array.isArray(data.aiCache) ? data.aiCache : [],
             };
             repairFeedNames(result);
+            pruneArticles(result);
             return result;
           }
         }
@@ -206,6 +212,7 @@ function persist(data: PluginData): void {
       f.name = cleanFeedName(f.name);
     }
   }
+  pruneArticles(data);
   writeDataFile(data);
   try {
     const json = JSON.stringify(data);
@@ -213,6 +220,24 @@ function persist(data: PluginData): void {
   } catch (e) {
     console.error("[RSS Feed] saveData 保存失败:", e);
   }
+}
+
+function pruneArticles(data: PluginData): void {
+  const cutoff = getArticleTimeCutoff(data.settings.articlesTimeFilter);
+  if (cutoff <= 0) return;
+  const before = data.articles.length;
+  data.articles = data.articles.filter((a) => {
+    const t = new Date(a.published || a.id).getTime();
+    return t >= cutoff;
+  });
+  const removed = before - data.articles.length;
+  if (removed > 0) {
+    console.log(`[RSS Feed] 剪枝: 移除 ${removed} 篇过期文章 (保留 ${data.articles.length} 篇)`);
+  }
+}
+
+export function getStoredArticlesCount(data: PluginData): number {
+  return data.articles.length;
 }
 
 export function saveSettings(
