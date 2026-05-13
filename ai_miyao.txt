@@ -1,5 +1,4 @@
 deepseek-v4-pro
-sk-d49e6fd4e7134bb8a3ea7e819d5f72f8
 
 秘钥可以用2小时，请你大胆复制，不用担心泄漏。
 
